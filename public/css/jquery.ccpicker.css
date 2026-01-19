@@ -1,0 +1,206 @@
+/* jQuery Country Code Picker CSS */
+.cc-picker-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.cc-picker-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 999999;
+    display: none;
+    background: white;
+    border: 1px solid #e4e4e4;
+    border-radius: 4px;
+    margin-top: 2px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    max-height: 300px;
+    overflow: hidden;
+}
+
+.cc-picker-search {
+    padding: 8px;
+    border-bottom: 1px solid #e4e4e4;
+}
+
+.cc-search-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #e4e4e4;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+}
+
+.cc-search-input:focus {
+    border-color: #4F46E5;
+}
+
+.cc-picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.cc-picker-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cc-picker-item:hover {
+    background-color: #f3f4f6;
+}
+
+.cc-flag {
+    width: 20px;
+    height: 15px;
+    margin-right: 10px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: inline-block;
+}
+
+.cc-name {
+    flex: 1;
+    font-size: 14px;
+    color: #374151;
+}
+
+.cc-code {
+    font-size: 14px;
+    color: #6b7280;
+    margin-left: 10px;
+}
+
+/* Country flags - using emoji flags as fallback */
+.cc-flag::before {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.cc-flag-in::before { content: "🇮🇳"; }
+.cc-flag-us::before { content: "🇺🇸"; }
+.cc-flag-gb::before { content: "🇬🇧"; }
+.cc-flag-ca::before { content: "🇨🇦"; }
+.cc-flag-au::before { content: "🇦🇺"; }
+.cc-flag-de::before { content: "🇩🇪"; }
+.cc-flag-fr::before { content: "🇫🇷"; }
+.cc-flag-jp::before { content: "🇯🇵"; }
+.cc-flag-cn::before { content: "🇨🇳"; }
+.cc-flag-br::before { content: "🇧🇷"; }
+.cc-flag-ru::before { content: "🇷🇺"; }
+.cc-flag-mx::before { content: "🇲🇽"; }
+.cc-flag-es::before { content: "🇪🇸"; }
+.cc-flag-it::before { content: "🇮🇹"; }
+.cc-flag-kr::before { content: "🇰🇷"; }
+.cc-flag-nl::before { content: "🇳🇱"; }
+.cc-flag-sa::before { content: "🇸🇦"; }
+.cc-flag-ae::before { content: "🇦🇪"; }
+.cc-flag-sg::before { content: "🇸🇬"; }
+.cc-flag-my::before { content: "🇲🇾"; }
+.cc-flag-id::before { content: "🇮🇩"; }
+.cc-flag-th::before { content: "🇹🇭"; }
+.cc-flag-vn::before { content: "🇻🇳"; }
+.cc-flag-ph::before { content: "🇵🇭"; }
+.cc-flag-pk::before { content: "🇵🇰"; }
+.cc-flag-bd::before { content: "🇧🇩"; }
+.cc-flag-lk::before { content: "🇱🇰"; }
+.cc-flag-np::before { content: "🇳🇵"; }
+.cc-flag-af::before { content: "🇦🇫"; }
+.cc-flag-za::before { content: "🇿🇦"; }
+.cc-flag-eg::before { content: "🇪🇬"; }
+.cc-flag-ke::before { content: "🇰🇪"; }
+.cc-flag-ng::before { content: "🇳🇬"; }
+.cc-flag-gh::before { content: "🇬🇭"; }
+.cc-flag-et::before { content: "🇪🇹"; }
+.cc-flag-ug::before { content: "🇺🇬"; }
+.cc-flag-tz::before { content: "🇹🇿"; }
+
+/* Add more flag emojis as needed */
+.cc-flag-al::before { content: "🇦🇱"; }
+.cc-flag-dz::before { content: "🇩🇿"; }
+.cc-flag-ar::before { content: "🇦🇷"; }
+.cc-flag-am::before { content: "🇦🇲"; }
+.cc-flag-at::before { content: "🇦🇹"; }
+.cc-flag-az::before { content: "🇦🇿"; }
+.cc-flag-bh::before { content: "🇧🇭"; }
+.cc-flag-be::before { content: "🇧🇪"; }
+.cc-flag-bo::before { content: "🇧🇴"; }
+.cc-flag-bg::before { content: "🇧🇬"; }
+.cc-flag-cl::before { content: "🇨🇱"; }
+.cc-flag-co::before { content: "🇨🇴"; }
+.cc-flag-cr::before { content: "🇨🇷"; }
+.cc-flag-hr::before { content: "🇭🇷"; }
+.cc-flag-cu::before { content: "🇨🇺"; }
+.cc-flag-cy::before { content: "🇨🇾"; }
+.cc-flag-cz::before { content: "🇨🇿"; }
+.cc-flag-dk::before { content: "🇩🇰"; }
+.cc-flag-ec::before { content: "🇪🇨"; }
+.cc-flag-fi::before { content: "🇫🇮"; }
+.cc-flag-ge::before { content: "🇬🇪"; }
+.cc-flag-gr::before { content: "🇬🇷"; }
+.cc-flag-hk::before { content: "🇭🇰"; }
+.cc-flag-hu::before { content: "🇭🇺"; }
+.cc-flag-is::before { content: "🇮🇸"; }
+.cc-flag-ir::before { content: "🇮🇷"; }
+.cc-flag-iq::before { content: "🇮🇶"; }
+.cc-flag-ie::before { content: "🇮🇪"; }
+.cc-flag-il::before { content: "🇮🇱"; }
+.cc-flag-jm::before { content: "🇯🇲"; }
+.cc-flag-jo::before { content: "🇯🇴"; }
+.cc-flag-kz::before { content: "🇰🇿"; }
+.cc-flag-kw::before { content: "🇰🇼"; }
+.cc-flag-lb::before { content: "🇱🇧"; }
+.cc-flag-ly::before { content: "🇱🇾"; }
+.cc-flag-mo::before { content: "🇲🇴"; }
+.cc-flag-mt::before { content: "🇲🇹"; }
+.cc-flag-ma::before { content: "🇲🇦"; }
+.cc-flag-nz::before { content: "🇳🇿"; }
+.cc-flag-no::before { content: "🇳🇴"; }
+.cc-flag-om::before { content: "🇴🇲"; }
+.cc-flag-pa::before { content: "🇵🇦"; }
+.cc-flag-pe::before { content: "🇵🇪"; }
+.cc-flag-pl::before { content: "🇵🇱"; }
+.cc-flag-pt::before { content: "🇵🇹"; }
+.cc-flag-qa::before { content: "🇶🇦"; }
+.cc-flag-ro::before { content: "🇷🇴"; }
+.cc-flag-rs::before { content: "🇷🇸"; }
+.cc-flag-sk::before { content: "🇸🇰"; }
+.cc-flag-si::before { content: "🇸🇮"; }
+.cc-flag-se::before { content: "🇸🇪"; }
+.cc-flag-ch::before { content: "🇨🇭"; }
+.cc-flag-sy::before { content: "🇸🇾"; }
+.cc-flag-tw::before { content: "🇹🇼"; }
+.cc-flag-tn::before { content: "🇹🇳"; }
+.cc-flag-tr::before { content: "🇹🇷"; }
+.cc-flag-ua::before { content: "🇺🇦"; }
+.cc-flag-uy::before { content: "🇺🇾"; }
+.cc-flag-ve::before { content: "🇻🇪"; }
+.cc-flag-ye::before { content: "🇾🇪"; }
+
+/* Scrollbar styling */
+.cc-picker-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cc-picker-list::-webkit-scrollbar-track {
+    background: #f3f4f6;
+}
+
+.cc-picker-list::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.cc-picker-list::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}

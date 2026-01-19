@@ -1,0 +1,73 @@
+Matrix new Requirements:
+
+Completed Points:
+
+White-Labeling (Logo Update)
+ * Requirement: Update system branding.
+ * Detail: Replace the default logo with the "Matrix Care" logo across the login screen, dashboard header, favicon, and email/PDF templates.
+ 
+ Customer Reply System
+ * Requirement: Two-way communication on the Ticket Page.
+ * Detail: Add a comment/reply box on the public tracking page (Customer View). When a customer replies, it should appear in the admin ticket view.
+ * Dev Note: Needs a notification trigger for the admin when a customer replies.
+
+6. Accessories Checklist
+ * Requirement: Mandatory accessories selection.
+ * Detail: In the "Create Ticket" form, add a checkbox section for common accessories (e.g., Charger, SIM Card, Memory Card, Battery, Back Case).
+ * Goal: To prevent disputes regarding missing items upon delivery.
+
+10. Internal vs. Customer Notes
+ * Requirement: Note visibility permission.
+ * Detail: Separate the "Notes" field into two:
+   * Internal Note: Visible only to staff (e.g., "Device has water damage, strict pricing").
+   * Customer Note: Visible on the invoice and customer portal (e.g., "Screen replaced").
+
+11. New Workflow Status
+ * Requirement: Add 'Delivered' status.
+ * Detail: Add "Delivered" to the ticket status dropdown. This status should likely trigger the closing of the ticket and stop "Pending" timers.
+ 
+21. Pickup Request Option
+ * Requirement: Logistics management.
+ * Detail: Add a module or form option for "Request Pickup." This allows customers or staff to schedule a device pickup from a specific location (Address, Time slot, Contact person).
+
+16. Invoice Print Workflow
+ * Requirement: UI flow adjustment.
+ * Detail: Ensure the "Print Invoice" button is easily accessible immediately after a payment is recorded. It should not require navigating back to the 
+
+18. Pending Payment Reminder
+ * Requirement: Collections automation.
+ * Detail: A feature to send reminders (SMS/WhatsApp) to customers with a status of "Delivered" but "Payment Pending."
+   (whatsapp integeration pending)
+
+19. Comprehensive Reporting
+ * Requirement: Full data export.
+ * Detail: A "Master Report" that allows exporting all ticket data (Customer, Device, Issue, Status, Amount, Date) into Excel/CSV.
+
+20. Performance Report
+ * Requirement: Staff productivity.
+ * Detail: A report showing how many tickets each technician closed in a specific date range and the total revenue they generated.
+
+22. Leaderboard
+ * Requirement: Gamification.
+ * Detail: A dashboard widget showing the "Top 3 Technicians" or "Top Salespeople" based on revenue or closed tickets for the month.
+
+23. Decimal Formatting
+ * Requirement: Currency precision.
+ * Detail: Ensure all financial reports support decimal points (e.g., ₹100.50) rather than rounding off integers.
+ 
+12. Performance Optimization (Loading Time)
+ * Requirement: Server-side pagination.
+ * Detail: The customer list is currently loading too slowly (likely fetching all data at once). Change this to Server-Side Rendering/Pagination (load only 10-20 records at a time) to speed up the page load.
+
+15. Past Payment History
+ * Requirement: Ledger View.
+ * Detail: In the customer profile or ticket view, show a history of "Past Payments" to track if the customer has outstanding dues from previous services.
+ 
+16. Invoice Print Workflow
+ * Requirement: UI flow adjustment.
+ * Detail: Ensure the "Print Invoice" button is easily accessible immediately after a payment is recorded. It should not require navigating back to the list view.
+ 
+17. Proforma Invoice
+ * Requirement: Quotation generation.
+ * Detail: Ability to generate a "Proforma Invoice" (Quotation/Estimate) before the final tax invoice is raised, often required for B2B clients to process payments.
+
