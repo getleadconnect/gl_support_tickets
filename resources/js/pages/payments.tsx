@@ -27,6 +27,7 @@ interface Payment {
   item_amount: number;
   total_amount: number;
   discount: number;
+  gst_amount?: number;
   net_amount: number;
   payment_mode: string;
   created_at: string;
@@ -293,6 +294,7 @@ export default function Payments() {
         'Customer',
         'Total Amount',
         'Discount',
+        'Gst',
         'Net Amount',
         'Paid Amount',
         'Balance Due',
@@ -311,6 +313,7 @@ export default function Payments() {
           `"${payment.customer?.name || 'N/A'}"`, // Quote to handle commas in names
           payment.total_amount,
           payment.discount,
+          payment.gst_amount || 0,
           payment.net_amount,
           payment.paid_amount || 0,
           payment.balance_due || 0,
@@ -508,6 +511,7 @@ export default function Payments() {
                   <th className="text-left p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Customer</th>
                   <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Total Amount</th>
                   <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Discount</th>
+                  <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Gst</th>
                   <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Net Amount</th>
                   <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Paid Amount</th>
                   <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Balance Due</th>
@@ -519,13 +523,13 @@ export default function Payments() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={13} className="text-center py-8 text-gray-500">
+                    <td colSpan={14} className="text-center py-8 text-gray-500">
                       Loading payments...
                     </td>
                   </tr>
                 ) : payments.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="text-center py-8 text-gray-500">
+                    <td colSpan={14} className="text-center py-8 text-gray-500">
                       No payments found
                     </td>
                   </tr>
@@ -534,11 +538,14 @@ export default function Payments() {
                     <tr key={payment.id} className="border-b hover:bg-gray-50" style={{ borderColor: '#e4e4e4' }}>
                       <td className="p-2 text-sm border-r" style={{ borderColor: '#e4e4e4' }}>{startIndex + index}</td>
                       <td className="p-2 text-sm border-r" style={{ borderColor: '#e4e4e4' }}>PAY-{payment.id.toString().padStart(6, '0')}</td>
-                      <td className="p-2 text-sm border-r" style={{ borderColor: '#e4e4e4' }}>{payment.invoice?.invoice_id || payment.invoice_id}</td>
+                      <td className="p-2 text-sm border-r" style={{ borderColor: '#e4e4e4' }}>{payment.invoice_id}</td>
                       <td className="p-2 text-sm border-r" style={{ borderColor: '#e4e4e4' }}>{payment.ticket_id}</td>
                       <td className="p-2 text-sm border-r" style={{ borderColor: '#e4e4e4' }}>{payment.customer?.name || 'N/A'}</td>
                       <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>{formatCurrency(payment.total_amount)}</td>
                       <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>{formatCurrency(payment.discount)}</td>
+                      <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>
+                        {payment.gst_amount && payment.gst_amount > 0 ? formatCurrency(payment.gst_amount) : '--'}
+                      </td>
                       <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>{formatCurrency(payment.net_amount)}</td>
                       <td className="p-2 text-sm text-right border-r font-semibold" style={{ borderColor: '#e4e4e4', color: 'green' }}>{formatCurrency(payment.paid_amount || 0)}</td>
                       <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4', color: 'red' }}>{formatCurrency(payment.balance_due || 0)}</td>
@@ -607,6 +614,10 @@ export default function Payments() {
                         <div>
                           <span className="text-gray-500">Discount:</span>
                           <p className="font-medium">{formatCurrency(payment.discount)}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Gst:</span>
+                          <p className="font-medium">{payment.gst_amount && payment.gst_amount > 0 ? formatCurrency(payment.gst_amount) : '--'}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Paid Amount:</span>

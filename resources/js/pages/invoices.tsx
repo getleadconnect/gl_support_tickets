@@ -33,6 +33,7 @@ interface Invoice {
   service_type?: string;
   total_amount: number;
   discount?: number;
+  gst_amount?: number;
   net_amount?: number;
   paid_amount?: number;
   balance_due?: number;
@@ -497,6 +498,20 @@ export default function Invoices() {
         </div>
       </div>
 
+      {/* Info Message - Default 3 Month Filter */}
+      {!startDate && !endDate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-start gap-2">
+            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center mt-0.5">
+              <span className="text-white text-xs font-semibold">i</span>
+            </div>
+            <p className="text-sm text-blue-700">
+              Showing last 3 months data only. Use filters above to view different date ranges.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Table Controls */}
       <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
@@ -542,6 +557,7 @@ export default function Invoices() {
                 <th className="text-left p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Service Type</th>
                 <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Total Amount</th>
                 <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Discount</th>
+                <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>GST</th>
                 <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Net Amount</th>
                 <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Paid Amount</th>
                 <th className="text-right p-2 text-sm font-medium border-r" style={{ borderColor: '#e4e4e4' }}>Balance Due</th>
@@ -553,13 +569,13 @@ export default function Invoices() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={14} className="text-center py-8 text-gray-500">
+                  <td colSpan={15} className="text-center py-8 text-gray-500">
                     Loading invoices...
                   </td>
                 </tr>
               ) : invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="text-center py-8 text-gray-500">
+                  <td colSpan={15} className="text-center py-8 text-gray-500">
                     No invoices found
                   </td>
                 </tr>
@@ -603,6 +619,9 @@ export default function Invoices() {
                     </td>
                     <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>₹{invoice.total_amount}</td>
                     <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>₹{invoice.discount || 0}</td>
+                    <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4' }}>
+                      {invoice.gst_amount && invoice.gst_amount > 0 ? `₹${invoice.gst_amount}` : '--'}
+                    </td>
                     <td className="p-2 text-sm text-right border-r " style={{ borderColor: '#e4e4e4' }}>₹{invoice.net_amount || invoice.total_amount}</td>
                     <td className="p-2 text-sm text-right border-r font-semibold" style={{ borderColor: '#e4e4e4',color:'green' }}>₹{invoice.paid_amount || 0}</td>
                     <td className="p-2 text-sm text-right border-r" style={{ borderColor: '#e4e4e4',color:'red' }}>₹{invoice.balance_due || 0}</td>
@@ -730,6 +749,10 @@ export default function Invoices() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Discount:</span>
                       <span>₹{invoice.discount || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">GST:</span>
+                      <span>{invoice.gst_amount && invoice.gst_amount > 0 ? `₹${invoice.gst_amount}` : '--'}</span>
                     </div>
                     <div className="flex justify-between font-medium pt-2 border-t" style={{ borderColor: '#e4e4e4' }}>
                       <span>Net Amount:</span>

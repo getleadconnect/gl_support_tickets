@@ -27,6 +27,7 @@ interface AddInvoiceModalProps {
   ticketId: number;
   customerId: number;
   customerName: string;
+  invoiceType?: string;
 }
 
 export function AddInvoiceModal({
@@ -34,7 +35,8 @@ export function AddInvoiceModal({
   onClose,
   ticketId,
   customerId,
-  customerName
+  customerName,
+  invoiceType = 'without_gst'
 }: AddInvoiceModalProps) {
   const [loading, setLoading] = useState(false);
   const [serviceCharge, setServiceCharge] = useState<string>('');
@@ -54,6 +56,13 @@ export function AddInvoiceModal({
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [loadingPdf, setLoadingPdf] = useState(false);
+
+  // GST related states
+  const [gstRate, setGstRate] = useState<number>(0);
+  const [taxableAmount, setTaxableAmount] = useState<number>(0);
+  const [cgstAmount, setCgstAmount] = useState<number>(0);
+  const [sgstAmount, setSgstAmount] = useState<number>(0);
+  const [gstAmount, setGstAmount] = useState<number>(0);
 
   const handleClose = () => {
     // Reset states when closing
@@ -106,7 +115,7 @@ export function AddInvoiceModal({
       const response = await axios.get(`/tickets/${ticketId}/spare-parts`);
       const productsData = response.data || [];
       setProducts(productsData);
-      
+
       // Calculate total from products using total_price column
       const total = productsData.reduce((sum: number, item: any) => {
         return sum + (parseFloat(item.total_price) || 0);
@@ -116,6 +125,54 @@ export function AddInvoiceModal({
       console.error('Error fetching ticket products:', error);
     }
   };
+
+  // Fetch GST rate from database
+  useEffect(() => {
+    const fetchGstRate = async () => {
+      if (invoiceType === 'with_gst') {
+        try {
+          const response = await axios.get('/gst/rate');
+          if (response.data && response.data.gst) {
+            setGstRate(parseFloat(response.data.gst));
+          }
+        } catch (error) {
+          console.error('Error fetching GST rate:', error);
+          setGstRate(18); // Default to 18% if fetch fails
+        }
+      } else {
+        setGstRate(0);
+      }
+    };
+
+    fetchGstRate();
+  }, [invoiceType]);
+
+  // Calculate GST amounts when values change
+  useEffect(() => {
+    if (invoiceType === 'with_gst' && gstRate > 0) {
+      // Calculate GST on Total Amount (Spare Parts + Service Charge)
+      const totalAmount = productTotal + (parseFloat(serviceCharge) || 0);
+
+      // GST is calculated on the total amount (before discount)
+      const gstMultiplier = gstRate / 100;
+      const totalGst = totalAmount * gstMultiplier;
+      const cgst = totalGst / 2;
+      const sgst = totalGst / 2;
+
+      // Taxable amount is the base amount (before GST)
+      const taxable = totalAmount;
+
+      setTaxableAmount(taxable);
+      setGstAmount(totalGst);
+      setCgstAmount(cgst);
+      setSgstAmount(sgst);
+    } else {
+      setTaxableAmount(0);
+      setGstAmount(0);
+      setCgstAmount(0);
+      setSgstAmount(0);
+    }
+  }, [invoiceType, productTotal, serviceCharge, gstRate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +212,12 @@ export function AddInvoiceModal({
         invoice_date: new Date().toISOString().split('T')[0],
         service_type: serviceType || null,
         description: description || null,
+        invoice_type: invoiceType,           // Add invoice type (with_gst or without_gst)
+        gst_rate: invoiceType === 'with_gst' ? gstRate : 0,
+        taxable_amount: invoiceType === 'with_gst' ? taxableAmount : 0,
+        cgst_amount: invoiceType === 'with_gst' ? cgstAmount : 0,
+        sgst_amount: invoiceType === 'with_gst' ? sgstAmount : 0,
+        gst_amount: invoiceType === 'with_gst' ? gstAmount : 0,
         products: products.map(p => ({
           product_id: p.product_id,
           quantity: p.quantity,
@@ -178,7 +241,10 @@ export function AddInvoiceModal({
     }
   };
 
-  const grandTotal = productTotal + (parseFloat(serviceCharge) || 0) - (parseFloat(discount) || 0);
+  // Calculate grand total including GST for with_gst invoices
+  const grandTotal = invoiceType === 'with_gst'
+    ? productTotal + (parseFloat(serviceCharge) || 0) + gstAmount - (parseFloat(discount) || 0)
+    : productTotal + (parseFloat(serviceCharge) || 0) - (parseFloat(discount) || 0);
 
   // Update balance due when paid amount or grand total changes
   useEffect(() => {
@@ -240,7 +306,7 @@ export function AddInvoiceModal({
   return (
     <>
     <Dialog open={isOpen && !pdfModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Add Invoice</DialogTitle>
         </DialogHeader>
@@ -301,163 +367,207 @@ export function AddInvoiceModal({
           </div>
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          {products.length > 0 && (
-            <div className="space-y-2">
-              <Label>Products Used</Label>
-              <div className="border rounded-lg p-3 max-h-32 overflow-y-auto">
-                {products.map((product, index) => (
-                  <div key={index} className="flex justify-between text-sm py-1">
-                    <span>{product.product?.name || 'Unknown Product'} x {product.quantity}</span>
-                    <span>₹{product.total_price}</span>
+          {/* Two Column Grid Layout */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Column - Input Fields */}
+            <div className="space-y-4">
+              {/* Products Used Section */}
+              {products.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Products Used</Label>
+                  <div className="border rounded-lg p-3 max-h-40 overflow-y-auto">
+                    {products.map((product, index) => (
+                      <div key={index} className="flex justify-between text-sm py-1">
+                        <span>{product.product?.name || 'Unknown Product'} x {product.quantity}</span>
+                        <span>₹{product.total_price}</span>
+                      </div>
+                    ))}
+                    <div className="border-t mt-2 pt-2 flex justify-between font-medium">
+                      <span>Products Total:</span>
+                      <span>₹{productTotal.toFixed(2)}</span>
+                    </div>
                   </div>
-                ))}
-                <div className="border-t mt-2 pt-2 flex justify-between font-medium">
-                  <span>Products Total:</span>
-                  <span>₹{productTotal.toFixed(2)}</span>
+                </div>
+              )}
+
+              {/* Service Charge and Discount */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="serviceCharge">Service Charge</Label>
+                  <Input
+                    id="serviceCharge"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter service charge"
+                    value={serviceCharge}
+                    onChange={(e) => setServiceCharge(e.target.value)}
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="discount">Discount</Label>
+                  <Input
+                    id="discount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter discount amount"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Paid Amount and Balance Due */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="paidAmount">Paid Amount</Label>
+                  <Input
+                    id="paidAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter paid amount"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="balanceDue">Balance Due</Label>
+                  <Input
+                    id="balanceDue"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Auto calculated"
+                    value={balanceDue}
+                    readOnly
+                    className="mt-1 bg-gray-100"
+                  />
+                </div>
+              </div>
+
+              {/* Service Type and Payment Mode */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="serviceType">Service Type</Label>
+                  <Select value={serviceType} onValueChange={setServiceType}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select service type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Shop">Shop</SelectItem>
+                      <SelectItem value="Outsource">Outsource</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="paymentMode">Payment Mode</Label>
+                  <Select value={paymentMode} onValueChange={setPaymentMode} required>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select payment mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Card">Card</SelectItem>
+                      <SelectItem value="UPI">UPI</SelectItem>
+                      <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="Credit">Credit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter description (optional)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="mt-1 min-h-[100px]"
+                  maxLength={1000}
+                />
+              </div>
+            </div>
+
+            {/* Right Column - Summary Section */}
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 h-full">
+                <h3 className="font-semibold text-base mb-4 text-gray-700">Invoice Summary</h3>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Item Cost:</span>
+                    <span>₹{productTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Service Charge:</span>
+                    <span>₹{(parseFloat(serviceCharge) || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium border-t pt-2">
+                    <span>Subtotal:</span>
+                    <span>₹{(productTotal + (parseFloat(serviceCharge) || 0)).toFixed(2)}</span>
+                  </div>
+
+                  {(parseFloat(discount) || 0) > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Discount:</span>
+                      <span>-₹{(parseFloat(discount) || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* GST Breakdown - Only show for with_gst invoices */}
+                  {invoiceType === 'with_gst' && gstRate > 0 && (
+                    <>
+                      <div className="border-t pt-2 mt-2 space-y-2">
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>Taxable Amount:</span>
+                          <span>₹{taxableAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>CGST @ {(gstRate / 2).toFixed(2)}%:</span>
+                          <span>₹{cgstAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>SGST @ {(gstRate / 2).toFixed(2)}%:</span>
+                          <span>₹{sgstAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-medium text-blue-600">
+                          <span>Total GST ({gstRate}%):</span>
+                          <span>₹{gstAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-between font-semibold text-lg border-t pt-3 mt-3">
+                    <span>Net Amount:</span>
+                    <span>₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-blue-600 pt-2">
+                    <span>Paid Amount:</span>
+                    <span>₹{(parseFloat(paidAmount) || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-orange-600 font-medium">
+                    <span>Balance Due:</span>
+                    <span>₹{(parseFloat(balanceDue) || 0).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="serviceCharge">Service Charge</Label>
-              <Input
-                id="serviceCharge"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Enter service charge"
-                value={serviceCharge}
-                onChange={(e) => setServiceCharge(e.target.value)}
-                className="mt-1"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="discount">Discount</Label>
-              <Input
-                id="discount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Enter discount amount"
-                value={discount}
-                onChange={(e) => setDiscount(e.target.value)}
-                className="mt-1"
-              />
-            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="paidAmount">Paid Amount</Label>
-              <Input
-                id="paidAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Enter paid amount"
-                value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
-                className="mt-1"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="balanceDue">Balance Due</Label>
-              <Input
-                id="balanceDue"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Auto calculated"
-                value={balanceDue}
-                readOnly
-                className="mt-1 bg-gray-100"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="serviceType">Service Type</Label>
-              <Select value={serviceType} onValueChange={setServiceType}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select service type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Shop">Shop</SelectItem>
-                  <SelectItem value="Outsource">Outsource</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="paymentMode">Payment Mode</Label>
-              <Select value={paymentMode} onValueChange={setPaymentMode} required>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select payment mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Card">Card</SelectItem>
-                  <SelectItem value="UPI">UPI</SelectItem>
-                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="Credit">Credit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Enter description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-1 min-h-[80px]"
-              maxLength={1000}
-            />
-          </div>
-
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex justify-between text-sm mb-1">
-              <span>Item Cost:</span>
-              <span>₹{productTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Service Charge:</span>
-              <span>₹{(parseFloat(serviceCharge) || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm mb-2 border-t pt-2">
-              <span className="font-medium">Subtotal:</span>
-              <span className="font-medium">₹{(productTotal + (parseFloat(serviceCharge) || 0)).toFixed(2)}</span>
-            </div>
-            {(parseFloat(discount) || 0) > 0 && (
-              <div className="flex justify-between text-sm mb-2 text-green-600">
-                <span>Discount:</span>
-                <span>-₹{(parseFloat(discount) || 0).toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold text-base border-t pt-2">
-              <span>Net Amount:</span>
-              <span>₹{grandTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm mt-2 text-blue-600">
-              <span>Paid Amount:</span>
-              <span>₹{(parseFloat(paidAmount) || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm mt-1 text-orange-600 font-medium">
-              <span>Balance Due:</span>
-              <span>₹{(parseFloat(balanceDue) || 0).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>

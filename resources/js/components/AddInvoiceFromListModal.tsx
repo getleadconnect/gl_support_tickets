@@ -47,6 +47,7 @@ export function AddInvoiceFromListModal({
   verifiedTickets,
   loading
 }: AddInvoiceFromListModalProps) {
+  const [invoiceType, setInvoiceType] = useState<string>('');
   const [selectedTicketId, setSelectedTicketId] = useState<string>('');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -185,13 +186,21 @@ export function AddInvoiceFromListModal({
     setSelectedTicketId(ticketId);
     const ticket = verifiedTickets.find(t => t.id.toString() === ticketId);
     setSelectedTicket(ticket || null);
-    
+
     // Fetch payment dues for this customer
     if (ticket && ticket.customer_id) {
       fetchCustomerPaymentDues(ticket.customer_id);
     } else {
       setPaymentDues([]);
     }
+  };
+
+  const handleInvoiceTypeChange = (type: string) => {
+    setInvoiceType(type);
+    // Reset ticket selection when changing invoice type
+    setSelectedTicketId('');
+    setSelectedTicket(null);
+    setPaymentDues([]);
   };
 
   const handleProceed = () => {
@@ -201,6 +210,7 @@ export function AddInvoiceFromListModal({
   };
 
   const handleClose = () => {
+    setInvoiceType('');
     setSelectedTicketId('');
     setSelectedTicket(null);
     setShowInvoiceModal(false);
@@ -222,6 +232,7 @@ export function AddInvoiceFromListModal({
         ticketId={selectedTicket.id}
         customerId={selectedTicket.customer_id}
         customerName={selectedTicket.customer?.name || ''}
+        invoiceType={invoiceType}
       />
     );
   }
@@ -234,11 +245,29 @@ export function AddInvoiceFromListModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4 overflow-visible" style={{maxHeight: 'calc(90vh - 120px)', overflowY: 'auto'}}>
+          {/* Invoice Type Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="invoice-type">
+              Invoice Type
+            </Label>
+            <select
+              id="invoice-type"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none "
+              value={invoiceType}
+              onChange={(e) => handleInvoiceTypeChange(e.target.value)}
+            >
+              <option value="">Select Type</option>
+              <option value="without_gst">Without GST</option>
+              <option value="with_gst">With GST</option>
+            </select>
+          </div>
+
+          {/* Ticket Selection - Always visible */}
           <div className="space-y-2">
             <Label htmlFor="ticket-select">
               Select Verified Ticket
             </Label>
-            
+
             {loading ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
@@ -261,7 +290,8 @@ export function AddInvoiceFromListModal({
             )}
           </div>
 
-          {selectedTicket && (
+          {/* Ticket Details - Show for both GST types */}
+          {invoiceType && selectedTicket && (
             <div className="mt-4 space-y-4">
               <div className="p-3 bg-gray-50 rounded-lg w-full overflow-hidden">
                 <h4 className="text-sm font-medium mb-2">Selected Ticket Details:</h4>
@@ -276,7 +306,7 @@ export function AddInvoiceFromListModal({
               {/* Customer Payment Dues */}
               <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
                 <h4 className="text-sm font-medium mb-3 text-orange-800">Customer Payment Dues</h4>
-                
+
                 {loadingDues ? (
                   <div className="flex items-center justify-center p-2">
                     <Loader2 className="h-4 w-4 animate-spin text-orange-500 mr-2" />
@@ -293,7 +323,7 @@ export function AddInvoiceFromListModal({
                       {paymentDues.map((due, index) => (
                         <div key={due.id || index} className="flex justify-between items-center text-sm bg-white p-2 rounded ">
                           <span className="text-gray-700">
-                            Invoice #{due.invoice?.invoice_id || `INV-${due.invoice_id}`} 
+                            Invoice #{due.invoice?.invoice_id || `INV-${due.invoice_id}`}
                             {due.ticket && ` (${due.ticket.tracking_number})`}
                           </span>
                           <span className="font-medium text-red-600">
@@ -302,7 +332,7 @@ export function AddInvoiceFromListModal({
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Total dues */}
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between items-center font-semibold text-base">
@@ -323,9 +353,9 @@ export function AddInvoiceFromListModal({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleProceed} 
-            disabled={!selectedTicket || loading}
+          <Button
+            onClick={handleProceed}
+            disabled={!invoiceType || !selectedTicket || loading}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             Proceed to Create Invoice

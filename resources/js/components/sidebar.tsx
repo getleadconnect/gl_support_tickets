@@ -152,6 +152,11 @@ const navigationItems: NavItem[] = [
         icon: Ticket,
       },
       {
+        title: 'GST Report',
+        href: '/gst-report',
+        icon: FileText,
+      },
+      {
         title: 'General Report',
         href: '/reports',
         icon: FileText,
@@ -284,7 +289,7 @@ export function Sidebar({ className, ...props }: SidebarProps) {
     <div className={cn("h-full bg-gradient-to-b from-white to-slate-50", className)} {...props}>
       <div className="flex flex-col h-full">
         {/* Logo Section */}
-        <div className="px-2 py-2 border-b border-slate-200">
+        <div className="px-2 py-2 border-b border-slate-200" style={{height:'65px'}}>
           <div className="flex flex-col items-center justify-center gap-2">
             {activeLogo && activeLogo.logo_image ? (
               <div className="flex flex-col items-center gap-2" style={{height:'48px'}}>

@@ -1708,4 +1708,104 @@ class ReportController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get GST Report
+     * Shows GST details from payments joined with invoices table
+     */
+    public function getGstReport(Request $request)
+    {
+        try {
+            $user = auth()->user();
+
+            // Build base query joining payments and invoices
+            $query = Payment::select(
+                'payments.id as payment_id',
+                'payments.invoice_id',
+                'payments.customer_id',
+                'payments.net_amount',
+                'payments.gst_amount',
+                'invoices.invoice_id as invoice_number',
+                'invoices.cgst_amount',
+                'invoices.sgst_amount',
+                'customers.name as customer_name'
+            )
+            ->join('invoices', 'payments.invoice_id', '=', 'invoices.id')
+            ->join('customers', 'payments.customer_id', '=', 'customers.id')
+            ->whereNotNull('payments.gst_amount')
+            ->where('payments.gst_amount', '>', 0);
+
+            // Apply branch filter for non-admin users
+            if ($user->role_id != 1 && $user->branch_id) {
+                $query->join('tickets', 'invoices.ticket_id', '=', 'tickets.id')
+                      ->where('tickets.branch_id', $user->branch_id);
+            }
+
+            // Apply filters
+            if ($request->has('start_date') && $request->start_date) {
+                $query->whereDate('payments.created_at', '>=', $request->start_date);
+            }
+
+            if ($request->has('end_date') && $request->end_date) {
+                $query->whereDate('payments.created_at', '<=', $request->end_date);
+            }
+
+            if ($request->has('customer_id') && $request->customer_id) {
+                $query->where('payments.customer_id', $request->customer_id);
+            }
+
+            // Get paginated results
+            $perPage = $request->get('per_page', 50);
+            $gstData = $query->orderBy('payments.id', 'desc')->paginate($perPage);
+
+            // Calculate totals
+            $totals = Payment::select(
+                DB::raw('SUM(payments.net_amount) as total_net_amount'),
+                DB::raw('SUM(payments.gst_amount) as total_gst_amount'),
+                DB::raw('SUM(invoices.cgst_amount) as total_cgst_amount'),
+                DB::raw('SUM(invoices.sgst_amount) as total_sgst_amount')
+            )
+            ->join('invoices', 'payments.invoice_id', '=', 'invoices.id')
+            ->whereNotNull('payments.gst_amount')
+            ->where('payments.gst_amount', '>', 0);
+
+            // Apply same filters to totals
+            if ($user->role_id != 1 && $user->branch_id) {
+                $totals->join('tickets', 'invoices.ticket_id', '=', 'tickets.id')
+                       ->where('tickets.branch_id', $user->branch_id);
+            }
+
+            if ($request->has('start_date') && $request->start_date) {
+                $totals->whereDate('payments.created_at', '>=', $request->start_date);
+            }
+
+            if ($request->has('end_date') && $request->end_date) {
+                $totals->whereDate('payments.created_at', '<=', $request->end_date);
+            }
+
+            if ($request->has('customer_id') && $request->customer_id) {
+                $totals->where('payments.customer_id', $request->customer_id);
+            }
+
+            $totalAmounts = $totals->first();
+
+            // Add totals to response
+            $response = $gstData->toArray();
+            $response['totals'] = [
+                'net_amount' => $totalAmounts->total_net_amount ?? 0,
+                'gst_amount' => $totalAmounts->total_gst_amount ?? 0,
+                'cgst_amount' => $totalAmounts->total_cgst_amount ?? 0,
+                'sgst_amount' => $totalAmounts->total_sgst_amount ?? 0,
+            ];
+
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch GST report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

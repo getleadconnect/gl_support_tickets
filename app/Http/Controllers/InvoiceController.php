@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Invoice;
 use App\Models\Company;
+use App\Models\Branch;
 use App\Models\ProductTicket;
 use App\Models\Payment;
 use App\Models\PaymentDue;
@@ -30,7 +31,17 @@ class InvoiceController extends Controller
             }
         }
         // Admin users (role_id = 1) can see all invoices
-        
+
+        // Default: Show only last 3 months invoices if no date filter is applied
+        $hasDateFilter = ($request->has('start_date') && $request->start_date) ||
+                        ($request->has('end_date') && $request->end_date);
+
+        if (!$hasDateFilter) {
+            // Get date from 3 months ago
+            $threeMonthsAgo = now()->subMonths(3)->startOfDay();
+            $query->where('invoice_date', '>=', $threeMonthsAgo);
+        }
+
         // Search filter
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -42,12 +53,12 @@ class InvoiceController extends Controller
                   });
             });
         }
-        
-        // Date range filter
+
+        // Date range filter (user-specified dates override the default 3-month filter)
         if ($request->has('start_date') && $request->start_date) {
             $query->whereDate('invoice_date', '>=', $request->start_date);
         }
-        
+
         if ($request->has('end_date') && $request->end_date) {
             $query->whereDate('invoice_date', '<=', $request->end_date);
         }
@@ -104,6 +115,12 @@ class InvoiceController extends Controller
             'products' => 'nullable|array',
             'service_type' => 'nullable|in:Shop,Outsource',
             'description' => 'nullable|string|max:1000',
+            'invoice_type' => 'nullable|in:with_gst,without_gst',
+            'gst_rate' => 'nullable|numeric|min:0',
+            'taxable_amount' => 'nullable|numeric|min:0',
+            'cgst_amount' => 'nullable|numeric|min:0',
+            'sgst_amount' => 'nullable|numeric|min:0',
+            'gst_amount' => 'nullable|numeric|min:0',
         ]);
 
         try {
@@ -147,6 +164,12 @@ class InvoiceController extends Controller
                 'invoice_date' => $validated['invoice_date'],
                 'service_type' => $validated['service_type'] ?? null,
                 'description' => $validated['description'] ?? null,
+                'invoice_type' => $validated['invoice_type'] ?? 'without_gst',
+                'gst_rate' => $validated['gst_rate'] ?? 0,
+                'taxable_amount' => $validated['taxable_amount'] ?? 0,
+                'cgst_amount' => $validated['cgst_amount'] ?? 0,
+                'sgst_amount' => $validated['sgst_amount'] ?? 0,
+                'gst_amount' => $validated['gst_amount'] ?? 0,
                 'created_by' => Auth::id() ?? 1,
             ]);
             // Update ticket's service_type if provided
@@ -172,6 +195,7 @@ class InvoiceController extends Controller
                 'item_amount' => $invoice->item_cost,
                 'total_amount' => $invoice->total_amount,
                 'discount' => $invoice->discount,
+                'gst_amount' => $invoice->gst_amount,
                 'net_amount' => $invoice->net_amount,
                 'paid_amount' => $invoice->paid_amount,
                 'balance_due' => $invoice->balance_due,
@@ -365,36 +389,140 @@ class InvoiceController extends Controller
             // Get company info
             $company = Company::first();
 
+            // Get branch info based on user role
+            $branch = null;
+            if ($user->role_id != 1 && $user->branch_id) {
+                $branch = Branch::find($user->branch_id);
+            }
+
+            // Check invoice type (with_gst or without_gst)
+            $invoiceType = $invoice->invoice_type ?? 'without_gst';
+
             // Get spare parts for this ticket directly from ProductTicket
-            $spareParts = ProductTicket::with('product')
-                ->where('ticket_id', $invoice->ticket_id)
-                ->get();
+            $spareParts = ProductTicket::with(['product' => function($query) {
+                $query->select('id', 'name', 'code', 'brand_id', 'category_id', 'cost', 'hsn_code')
+                    ->with(['brand:id,brand', 'category:id,category']);
+            }])
+            ->where('ticket_id', $invoice->ticket_id)
+            ->get()
+            ->map(function($item) {
+                $quantity = $item->quantity ?? 1;
+                $unitPrice = $item->price ?? ($item->product->cost ?? 0);
+                $totalPrice = $item->total_price ?? ($quantity * $unitPrice);
 
-            // Calculate totals - Only service charge for PDF
-            $sparePartsTotal = 0; // Not showing parts in PDF
-            $totalAmount = $invoice->service_charge; // Only service charge in PDF
+                return [
+                    'product_name' => $item->product->name ?? 'N/A',
+                    'product_code' => $item->product->code ?? 'N/A',
+                    'brand' => $item->product->brand->brand ?? 'N/A',
+                    'hsn_code' => $item->product->hsn_code ?? '-',
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                ];
+            });
 
-            // Use discount and net_amount from invoice record
-            $discount = $invoice->discount ?? 0;
-            $netAmount = $invoice->net_amount ?? ($totalAmount - $discount);
+            // Calculate totals based on invoice type
+            $sparePartsTotal = $spareParts->sum('total_price');
+            $serviceCharge = $invoice->service_charge ?? 0;
 
-            // Convert amount to words (Indian numbering system)
-            $amountInWords = $this->convertNumberToWords($netAmount);
+            if ($invoiceType === 'with_gst') {
+                // Use stored GST rate from invoice, or fetch from gst table if not stored
+                $gstRate = $invoice->gst_rate;
+                if (!$gstRate || $gstRate == 0) {
+                    $gstFromTable = \DB::table('gst')->first();
+                    $gstRate = $gstFromTable ? $gstFromTable->gst : 18;
+                }
+                $cgstRate = $gstRate / 2;
+                $sgstRate = $gstRate / 2;
 
-            $data = [
-                'invoice' => $invoice,
-                'company' => $company,
-                'spareParts' => $spareParts,
-                'sparePartsTotal' => $sparePartsTotal,
-                'totalAmount' => $totalAmount,
-                'discount' => $discount,
-                'netAmount' => $netAmount,
-                'amountInWords' => $amountInWords
-            ];
+                // Get stored GST amounts
+                $totalTaxableAmount = $invoice->total_amount ?? 0;
+                $totalCgstAmount = $invoice->cgst_amount ?? 0;
+                $totalSgstAmount = $invoice->sgst_amount ?? 0;
+                $totalGstAmount = $invoice->gst_amount ?? 0;
 
-     
+                // Calculate per-item GST breakdown for spare parts
+                $spareParts = $spareParts->map(function($item) use ($gstRate) {
+                    $basePrice = $item['total_price']; // This is the taxable amount (qty * unit_price)
+                    $gstAmount = $basePrice * ($gstRate / 100);
+                    $cgstAmount = $gstAmount / 2;
+                    $sgstAmount = $gstAmount / 2;
+                    $totalWithGst = $basePrice;
+
+                    return array_merge($item, [
+                        'taxable_amount' => $basePrice,
+                        'cgst_amount' => $cgstAmount,
+                        'sgst_amount' => $sgstAmount,
+                        'total_with_gst' => $totalWithGst,
+                    ]);
+                });
+
+                // Service charge breakdown
+                $serviceTaxableAmount = $serviceCharge; // Service charge is the taxable amount
+                $serviceGstAmount = $serviceCharge * ($gstRate / 100);
+                $serviceCgstAmount = $serviceGstAmount / 2;
+                $serviceSgstAmount = $serviceGstAmount / 2;
+                $serviceWithGst = $serviceCharge + $serviceGstAmount;
+
+                $totalAmount = $invoice->total_amount;
+                $discount = $invoice->discount ?? 0;
+                $netAmount = $invoice->net_amount;
+
+                // Convert amount to words
+                $amountInWords = $this->convertNumberToWords($netAmount);
+
+                $data = [
+                    'invoice' => $invoice,
+                    'company' => $company,
+                    'branch' => $branch,
+                    'user' => $user,
+                    'spareParts' => $spareParts,
+                    'sparePartsTotal' => $sparePartsTotal,
+                    'serviceCharge' => $serviceCharge,
+                    'serviceTaxableAmount' => $serviceTaxableAmount,
+                    'serviceCgstAmount' => $serviceCgstAmount,
+                    'serviceSgstAmount' => $serviceSgstAmount,
+                    'serviceGstAmount' => $serviceCgstAmount+$serviceSgstAmount,
+                    'serviceWithGst' => $serviceWithGst,
+                    'serviceHsnCode' => '998314', // HSN code for repair services
+                    'gstRate' => $gstRate,
+                    'cgstRate' => $cgstRate,
+                    'sgstRate' => $sgstRate,
+                    'totalTaxableAmount' => $totalTaxableAmount,
+                    'totalCgstAmount' => $totalCgstAmount,
+                    'totalSgstAmount' => $totalSgstAmount,
+                    'totalAmount' => $totalAmount,
+                    'discount' => $discount,
+                    'netAmount' => $netAmount,
+                    'amountInWords' => $amountInWords
+                ];
+            } else {
+                // Without GST calculations (existing logic)
+                $totalAmount = $sparePartsTotal + $serviceCharge;
+                $discount = $invoice->discount ?? 0;
+                $netAmount = $invoice->net_amount ?? ($totalAmount - $discount);
+                $amountInWords = $this->convertNumberToWords($netAmount);
+
+                $data = [
+                    'invoice' => $invoice,
+                    'company' => $company,
+                    'branch' => $branch,
+                    'user' => $user,
+                    'spareParts' => $spareParts,
+                    'sparePartsTotal' => $sparePartsTotal,
+                    'serviceCharge' => $serviceCharge,
+                    'totalAmount' => $totalAmount,
+                    'discount' => $discount,
+                    'netAmount' => $netAmount,
+                    'amountInWords' => $amountInWords
+                ];
+            }
+
+            // Select the appropriate view based on invoice type
+            $viewName = ($invoiceType === 'with_gst') ? 'invoices.invoice_gst_pdf' : 'invoices.invoice_pdf';
+
             // Set DomPDF options to handle missing GD extension
-            $pdf = Pdf::loadView('invoices.invoice_pdf', $data);
+            $pdf = Pdf::loadView($viewName, $data);
             $pdf->setPaper('A4', 'portrait');
 
             // Set options to avoid GD dependency

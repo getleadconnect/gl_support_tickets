@@ -194,44 +194,17 @@ $logo=\App\Models\Company::pluck('logo')->first();
                         </div>
                     @endif
                 </div>
-
-                <!-- Company/Branch Information -->
-                @if($user->role_id == 1)
-                    <!-- Admin: Show Company Info -->
-                    <div class="company-name" style="margin-top:10px; font-size: 14px; font-weight: bold;">
-                        {{ $company ? $company->company_name : 'GETLEAD ANALYTICS PVT.LTD' }}
-                    </div>
-                    @if($company && $company->address)
-                    <div style="margin-top:3px; font-size: 9px; line-height: 1.4; max-width: 250px;">
-                        {{ $company->address }}
-                    </div>
-                    @endif
-                @else
-                    <!-- Non-Admin: Show Branch Info -->
-                    @if($branch)
-                    <div class="company-name" style="margin-top:10px; font-size: 14px; font-weight: bold;">
-                        {{ $branch->branch_name }}
-                    </div>
-                    @if($branch->address)
-                    <div style="margin-top:3px; font-size: 9px; line-height: 1.4; max-width: 250px;">
-                        {{ $branch->address }}
-                    </div>
-                    @endif
-                    @else
-                    <div class="company-name" style="margin-top:10px; font-size: 14px; font-weight: bold;">
-                        {{ $company ? $company->company_name : 'GETLEAD ANALYTICS PVT.LTD' }}
-                    </div>
-                    @endif
-                @endif
+                <div class="company-name" style="margin-top:10px;">{{ $company ? $company->company_name : 'GETLEAD ANALYTICS PVT.LTD' }}</div>
             </div>
             <div class="header-right">
-                <div class="invoice-title" style="margin-bottom: 15px;">Invoice/Bill for purchase</div>
-                <!-- Invoice Information moved here -->
-                <div style="text-align: right; font-size: 9px; line-height: 1.6;">
-                    <div><strong>Invoice Number:</strong> {{ $invoice->invoice_id }}</div>
-                    <div><strong>Invoice Date:</strong> {{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d-m-Y') }}</div>
-                </div>
+                <div class="invoice-title">Invoice/Bill for purchase</div>
             </div>
+        </div>
+
+        <!-- Order Information -->
+        <div class="order-info">
+            <div ><span class="label"  style="width:300px;">Invoice Number: {{ $invoice->invoice_id }}</span></div>
+            <div><span class="label" style="width:300px;">Invoice Date: {{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d-m-Y') }}</span></div>
         </div>
 
         <!-- Customer Details -->
@@ -276,61 +249,22 @@ $logo=\App\Models\Company::pluck('logo')->first();
             </tbody>
         </table>
 
-        <!-- Spare Parts Details -->
-        @if($spareParts && count($spareParts) > 0)
-        <div class="section-title">Spare Parts Details</div>
-        <table class="page-break">
-            <thead>
-                <tr>
-                    <th width="5%" class="text-center">#</th>
-                    <th width="30%">Product Name</th>
-                    <th width="20%">Product Code</th>
-                    <th width="15%">Brand</th>
-                    <th width="10%" class="text-center">Qty</th>
-                    <th width="10%" class="text-right">Price</th>
-                    <th width="10%" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($spareParts as $index => $part)
-                <tr>
-                    <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $part['product_name'] }}</td>
-                    <td>{{ $part['product_code'] }}</td>
-                    <td>{{ $part['brand'] }}</td>
-                    <td class="text-center">{{ $part['quantity'] }}</td>
-                    <td class="text-right">{{ number_format($part['unit_price'], 2) }}</td>
-                    <td class="text-right">{{ number_format($part['total_price'], 2) }}</td>
-                </tr>
-                @endforeach
-                <tr>
-                    <td colspan="6" class="text-right"><strong>Spare Parts Total:</strong></td>
-                    <td class="text-right"><strong>{{ number_format($sparePartsTotal, 2) }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
-        @endif
-
         <!-- Service Charge -->
         <table class="service-charge-table">
             <tr>
                 <td width="70%"><strong>Service Charge</strong></td>
-                <td width="30%" class="text-right"><strong>{{ number_format($serviceCharge, 2) }}</strong></td>
+                <td width="30%" class="text-right"><strong>{{ number_format($invoice->service_charge, 0) }}</strong></td>
             </tr>
         </table>
 
 
         <!-- Totals -->
         <div class="totals-section">
-            @if($sparePartsTotal > 0)
-            <div class="total-row">Spare Parts Total: {{ number_format($sparePartsTotal, 2) }}</div>
-            @endif
-            <div class="total-row">Service Charge: {{ number_format($serviceCharge, 2) }}</div>
-            <div class="total-row">Sub Total: {{ number_format($totalAmount, 2) }}</div>
+            <div class="total-row">Service Charge: {{ number_format($invoice->service_charge, 3) }}</div>
             @if($discount > 0)
-            <div class="total-row">Discount: {{ number_format($discount, 2) }}</div>
+            <div class="total-row">Discount: {{ number_format($discount, 3) }}</div>
             @endif
-            <div class="total-row net-amount">Net Amount: {{ number_format($netAmount, 2) }}</div>
+            <div class="total-row net-amount">Net Amount: {{ number_format($netAmount, 3) }}</div>
         </div>
 
         <!-- Amount in Words -->

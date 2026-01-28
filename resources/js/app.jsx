@@ -36,6 +36,7 @@ const StaffMonthlySplitups = lazy(() => import('./pages/staff-monthly-splitups')
 const MonthlyRevenueReport = lazy(() => import('./pages/monthly-revenue-report'));
 const ScheduledPickups = lazy(() => import('./pages/scheduled-pickups'));
 const TicketsReport = lazy(() => import('./pages/tickets-report'));
+const GstReport = lazy(() => import('./pages/gst-report'));
 const Estimates = lazy(() => import('./pages/estimates'));
 
 // Loading component
@@ -216,6 +217,11 @@ function App() {
                     <Route path="/tickets-report" element={
                         <ProtectedRoute>
                             <TicketsReport />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/gst-report" element={
+                        <ProtectedRoute>
+                            <GstReport />
                         </ProtectedRoute>
                     } />
                     <Route path="/staff-tickets-report" element={

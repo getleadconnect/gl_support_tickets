@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,12 +28,22 @@ import {
   Trash2,
   RotateCcw,
   Calendar,
-  User,
-  Home,
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import jQuery from 'jquery';
+import select2Factory from 'select2';
+import 'select2/dist/css/select2.min.css';
+
+// Initialize select2 on jQuery
+select2Factory(jQuery);
+
+// Make jQuery available globally
+(window as any).jQuery = jQuery;
+(window as any).$ = jQuery;
+
+const $ = jQuery;
 
 interface Ticket {
   id: number;
@@ -102,6 +112,9 @@ export default function ClosedTickets() {
   const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
   const [pendingReopenTicket, setPendingReopenTicket] = useState<Ticket | null>(null);
 
+  // Ref for Select2
+  const customerSelectRef = useRef<HTMLSelectElement>(null);
+
   useEffect(() => {
     fetchCustomers();
     // Only fetch agents if user is admin (role_id = 1)
@@ -113,6 +126,86 @@ export default function ClosedTickets() {
   useEffect(() => {
     fetchClosedTickets();
   }, [currentPage, perPage, searchTerm]);
+
+  // Initialize Select2 for Customer dropdown
+  useEffect(() => {
+    if (!customerSelectRef.current || customers.length === 0) {
+      return;
+    }
+
+    const $select = $(customerSelectRef.current);
+
+    // Check if select2 is available
+    if (typeof $.fn.select2 !== 'function') {
+      console.error('Select2 is not available on jQuery');
+      return;
+    }
+
+    // Destroy existing instance if any
+    if ($select.data('select2')) {
+      $select.select2('destroy');
+    }
+
+    // Initialize Select2
+    const timeoutId = setTimeout(() => {
+      $select.select2({
+        placeholder: 'All Customers',
+        allowClear: false, // Don't show clear button initially
+        width: '100%',
+        minimumResultsForSearch: 0,
+      });
+
+      // Set initial value
+      if (filters.customerId !== 'all') {
+        $select.val(filters.customerId).trigger('change.select2');
+      }
+
+      // Handle change event
+      $select.on('change', function() {
+        const value = $(this).val() as string;
+        setFilters(prev => ({ ...prev, customerId: value || 'all' }));
+      });
+
+      // Handle dropdown open event to style items
+      $select.on('select2:open', function() {
+        setTimeout(() => {
+          $('.select2-results__option').css({
+            'font-size': '14px'
+          });
+          $('.select2-search__field').css({
+            'font-size': '14px'
+          });
+        }, 10);
+      });
+
+      // Styling
+      const $container = $select.next('.select2-container');
+      $container.find('.select2-selection--single').css({
+        'height': '36px',
+        'display': 'flex',
+        'align-items': 'center',
+        'font-size': '14px'
+      });
+      $container.find('.select2-selection__rendered').css({
+        'font-size': '14px'
+      });
+      $container.find('.select2-selection__clear').css({
+        'padding-left': '8px'
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      try {
+        if ($select.data('select2')) {
+          $select.off('change');
+          $select.select2('destroy');
+        }
+      } catch (error) {
+        // Silently fail
+      }
+    };
+  }, [customers, filters.customerId]);
 
   const fetchCustomers = async () => {
     try {
@@ -171,7 +264,12 @@ export default function ClosedTickets() {
     fetchClosedTickets();
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
+    // Clear Select2 value first
+    if (customerSelectRef.current) {
+      $(customerSelectRef.current).val('all').trigger('change');
+    }
+
     // Reset filters to default values
     const defaultFilters = {
       startDate: '',
@@ -182,7 +280,33 @@ export default function ClosedTickets() {
     setFilters(defaultFilters);
     setSearchTerm('');
     setCurrentPage(1);
-    // fetchClosedTickets will be called automatically by useEffect
+
+    // Fetch all tickets immediately after clearing filters
+    try {
+      setLoading(true);
+      const response = await axios.get('/tickets/closed', {
+        params: {
+          page: 1,
+          per_page: perPage,
+          search: '',
+          customer_id: null,
+          agent_id: null,
+          start_date: null,
+          end_date: null,
+        },
+      });
+
+      const closedTickets = response.data.data || [];
+      setTickets(closedTickets);
+      setTotalPages(response.data.last_page || 1);
+      setTotalItems(response.data.total || 0);
+      setCurrentPage(response.data.current_page || 1);
+    } catch (error) {
+      console.error('Error fetching closed tickets:', error);
+      toast.error('Failed to fetch closed tickets');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePerPageChange = (value: string) => {
@@ -272,34 +396,36 @@ export default function ClosedTickets() {
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                className="w-[16.66%] min-w-[120px]"
+                className="h-9"
+                style={{ width: '170px' }}
                 placeholder="Start Date"
               />
-              
+
               <Input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                className="w-[16.66%] min-w-[120px]"
+                className="h-9"
+                style={{ width: '170px' }}
                 placeholder="End Date"
               />
-              
-              <Select
-                value={filters.customerId}
-                onValueChange={(value) => setFilters(prev => ({ ...prev, customerId: value }))}
-              >
-                <SelectTrigger className="w-[16.66%] min-w-[150px]">
-                  <SelectValue placeholder="Select Customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Customers</SelectItem>
+
+              {/* Customer Searchable Dropdown (Select2) */}
+              <div style={{ width: '170px' }}>
+                <select
+                  ref={customerSelectRef}
+                  className="h-9 w-full"
+                  value={filters.customerId}
+                  onChange={(e) => setFilters(prev => ({ ...prev, customerId: e.target.value }))}
+               style={{border:"1px solid #e4e4e4"}} >
+                  <option value="all">All Customers</option>
                   {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id.toString()}>
+                    <option key={customer.id} value={customer.id.toString()}>
                       {customer.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+              </div>
 
               {/* Only show agent filter for admin users (role_id = 1) */}
               {user?.role_id === 1 && (
@@ -307,7 +433,7 @@ export default function ClosedTickets() {
                   value={filters.agentId}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, agentId: value }))}
                 >
-                  <SelectTrigger className="w-[16.66%] min-w-[150px]">
+                  <SelectTrigger className="h-9" style={{ width: '170px' }}>
                     <SelectValue placeholder="Select Agent" />
                   </SelectTrigger>
                   <SelectContent>
@@ -324,16 +450,17 @@ export default function ClosedTickets() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleFilter}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="h-9"
                   style={{ width: '140px' }}
                 >
                   <Filter className="h-4 w-4 mr-1" />
                   Filter
                 </Button>
-                
+
                 <Button
                   variant="secondary"
                   onClick={handleClear}
+                  className="h-9"
                   style={{ width: '140px' }}
                 >
                   Clear

@@ -224,6 +224,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/staff-monthly-splitups', [StaffReportController::class, 'getStaffMonthlySplitups']);
     Route::get('/reports/staff-tickets-excel', [StaffReportController::class, 'generateStaffTicketsExcel']);
     Route::get('/reports/staff-monthly-splitups-excel', [StaffReportController::class, 'exportMonthlySplitupsExcel']);
+
+    // GST Report route
+    Route::get('/reports/gst-report', [ReportController::class, 'getGstReport']);
     
     // Notification routes
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -285,4 +288,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Estimate routes
     Route::get('/estimates/{estimate}/download', [EstimateController::class, 'download']);
     Route::apiResource('estimates', EstimateController::class);
+
+    // GST rate route
+    Route::get('/gst/rate', function () {
+        $gst = DB::table('gst')->first();
+        return response()->json(['gst' => $gst ? $gst->gst : 18]);
+    });
 });

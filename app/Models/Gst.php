@@ -5,18 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Branch extends Model
+class Gst extends Model
 {
     use HasFactory;
 
-    protected $table = 'branches';
+    protected $table = 'gst';
 
     protected $fillable = [
-        'branch_name',
-        'address',
-        'gstin',
-        'country_code',
-        'customer_care_number',
+        'gst',
         'created_by'
     ];
 
@@ -30,8 +26,4 @@ class Branch extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function tickets()
-    {
-        return $this->hasMany(Ticket::class, 'branch_id');
-    }
 }
