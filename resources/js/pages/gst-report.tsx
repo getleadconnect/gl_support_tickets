@@ -16,7 +16,7 @@ interface GstReportData {
   invoice_number: string;
   customer_id: number;
   customer_name: string;
-  net_amount: number;
+  total_amount: number;
   gst_amount: number;
   cgst_amount: number;
   sgst_amount: number;
@@ -45,10 +45,11 @@ export default function GstReport() {
 
   // Totals
   const [totals, setTotals] = useState({
-    net_amount: 0,
+    total_amount: 0,
     gst_amount: 0,
     cgst_amount: 0,
     sgst_amount: 0,
+    gst_per: '',
   });
 
   useEffect(() => {
@@ -161,7 +162,8 @@ export default function GstReport() {
         'Payment ID',
         'Invoice ID',
         'Customer',
-        'Net Amount',
+        'Total Amount',
+        'GST',
         'GST Amount',
         'CGST Amount',
         'SGST Amount'
@@ -174,7 +176,8 @@ export default function GstReport() {
           `PAY-${item.payment_id.toString().padStart(6, '0')}`,
           item.invoice_number,
           `"${item.customer_name}"`,
-          item.net_amount,
+          item.total_amount,
+          totals.gst_per,
           item.gst_amount,
           item.cgst_amount,
           item.sgst_amount
@@ -188,7 +191,8 @@ export default function GstReport() {
         'TOTAL',
         '',
         '',
-        totals.net_amount,
+        totals.total_amount,
+        '',
         totals.gst_amount,
         totals.cgst_amount,
         totals.sgst_amount
@@ -349,11 +353,11 @@ export default function GstReport() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card style={{ borderColor: '#e4e4e4' }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Net Amount</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Total Amount</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(totals.net_amount)}
+                {formatCurrency(totals.total_amount)}
               </div>
             </CardContent>
           </Card>
@@ -426,25 +430,26 @@ export default function GstReport() {
                 <TableHeader>
                   <TableRow style={{ borderColor: '#e4e4e4' }}>
                     <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>S.NO</TableHead>
-                    <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>PAYMENT_ID</TableHead>
-                    <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>INVOICE_ID</TableHead>
-                    <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>CUSTOMER</TableHead>
-                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>NET_AMOUNT</TableHead>
-                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>GST_AMOUNT</TableHead>
-                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>CGST_AMOUNT</TableHead>
-                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>SGST_AMOUNT</TableHead>
+                    <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>Payment_Id</TableHead>
+                    <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>Invoice_Id</TableHead>
+                    <TableHead className="text-left" style={{ borderColor: '#e4e4e4' }}>Customer Name</TableHead>
+                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>Total_Amount</TableHead>
+                    <TableHead className="text-center" style={{ borderColor: '#e4e4e4' }}>Gst%</TableHead>
+                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>Cgst_Amount</TableHead>
+                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>Sgst_Amount</TableHead>
+                    <TableHead className="text-right" style={{ borderColor: '#e4e4e4' }}>Total GST</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                         Loading GST report...
                       </TableCell>
                     </TableRow>
                   ) : filteredData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                         No GST data found
                       </TableCell>
                     </TableRow>
@@ -464,16 +469,19 @@ export default function GstReport() {
                           {item.customer_name}
                         </TableCell>
                         <TableCell className="text-right" style={{ borderColor: '#e4e4e4' }}>
-                          {formatCurrency(item.net_amount)}
+                          {formatCurrency(item.total_amount)}
                         </TableCell>
-                        <TableCell className="text-right" style={{ borderColor: '#e4e4e4' }}>
-                          {formatCurrency(item.gst_amount)}
+                        <TableCell className="text-center" style={{ borderColor: '#e4e4e4' }}>
+                          {totals.gst_per}
                         </TableCell>
                         <TableCell className="text-right" style={{ borderColor: '#e4e4e4' }}>
                           {formatCurrency(item.cgst_amount)}
                         </TableCell>
                         <TableCell className="text-right" style={{ borderColor: '#e4e4e4' }}>
                           {formatCurrency(item.sgst_amount)}
+                        </TableCell>
+                        <TableCell className="text-right" style={{ borderColor: '#e4e4e4' }}>
+                          {formatCurrency(item.gst_amount)}
                         </TableCell>
                       </TableRow>
                     ))

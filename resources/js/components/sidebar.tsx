@@ -205,7 +205,7 @@ export function Sidebar({ className, ...props }: SidebarProps) {
   const isTicketsActive = ticketsMenuPaths.includes(location.pathname);
 
   // Auto-expand Reports menu if any report-related page is active
-  const reportsMenuPaths = ['/reports', '/monthly-revenue-report', '/staff-tickets-report', '/staff-monthly-splitups'];
+  const reportsMenuPaths = ['/tickets-report', '/gst-report', '/reports', '/monthly-revenue-report', '/staff-tickets-report', '/staff-monthly-splitups'];
   const isReportsActive = reportsMenuPaths.includes(location.pathname);
 
   // Auto-expand Payments menu if any payment-related page is active
@@ -263,7 +263,7 @@ export function Sidebar({ className, ...props }: SidebarProps) {
   // Auto-expand Tickets menu when navigating to ticket-related pages
   useEffect(() => {
     const ticketPaths = ['/tickets', '/verify-tickets', '/closed-tickets', '/overdue-tickets', '/deleted-tickets', '/tracking-ticket'];
-    const reportPaths = ['/reports', '/monthly-revenue-report', '/staff-tickets-report', '/staff-monthly-splitups'];
+    const reportPaths = ['/tickets-report', '/gst-report', '/reports', '/monthly-revenue-report', '/staff-tickets-report', '/staff-monthly-splitups'];
     const paymentPaths = ['/payments', '/payment-dues', '/payment-history'];
 
     if (ticketPaths.includes(location.pathname)) {

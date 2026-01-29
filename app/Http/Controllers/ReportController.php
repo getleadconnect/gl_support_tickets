@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\ProductTicket;
 use App\Models\Activity;
+use App\Models\Gst;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -1723,7 +1724,7 @@ class ReportController extends Controller
                 'payments.id as payment_id',
                 'payments.invoice_id',
                 'payments.customer_id',
-                'payments.net_amount',
+                'payments.total_amount',
                 'payments.gst_amount',
                 'invoices.invoice_id as invoice_number',
                 'invoices.cgst_amount',
@@ -1760,7 +1761,7 @@ class ReportController extends Controller
 
             // Calculate totals
             $totals = Payment::select(
-                DB::raw('SUM(payments.net_amount) as total_net_amount'),
+                DB::raw('SUM(payments.total_amount) as total_total_amount'),
                 DB::raw('SUM(payments.gst_amount) as total_gst_amount'),
                 DB::raw('SUM(invoices.cgst_amount) as total_cgst_amount'),
                 DB::raw('SUM(invoices.sgst_amount) as total_sgst_amount')
@@ -1788,14 +1789,21 @@ class ReportController extends Controller
             }
 
             $totalAmounts = $totals->first();
-
+            
+            $gst=Gst::first();
+            $gstPer="";
+            if($gst)
+                {
+                    $gstPer=$gst->gst."%";
+                }
             // Add totals to response
             $response = $gstData->toArray();
             $response['totals'] = [
-                'net_amount' => $totalAmounts->total_net_amount ?? 0,
+                'total_amount' => $totalAmounts->total_total_amount ?? 0,
                 'gst_amount' => $totalAmounts->total_gst_amount ?? 0,
                 'cgst_amount' => $totalAmounts->total_cgst_amount ?? 0,
                 'sgst_amount' => $totalAmounts->total_sgst_amount ?? 0,
+                'gst_per'=>$gstPer ?? 0,
             ];
 
             return response()->json($response, 200);
