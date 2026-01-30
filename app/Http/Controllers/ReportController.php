@@ -1725,6 +1725,7 @@ class ReportController extends Controller
                 'payments.invoice_id',
                 'payments.customer_id',
                 'payments.total_amount',
+                'payments.gst_rate',
                 'payments.gst_amount',
                 'invoices.invoice_id as invoice_number',
                 'invoices.cgst_amount',
@@ -1790,12 +1791,6 @@ class ReportController extends Controller
 
             $totalAmounts = $totals->first();
             
-            $gst=Gst::first();
-            $gstPer="";
-            if($gst)
-                {
-                    $gstPer=$gst->gst."%";
-                }
             // Add totals to response
             $response = $gstData->toArray();
             $response['totals'] = [
@@ -1803,7 +1798,6 @@ class ReportController extends Controller
                 'gst_amount' => $totalAmounts->total_gst_amount ?? 0,
                 'cgst_amount' => $totalAmounts->total_cgst_amount ?? 0,
                 'sgst_amount' => $totalAmounts->total_sgst_amount ?? 0,
-                'gst_per'=>$gstPer ?? 0,
             ];
 
             return response()->json($response, 200);

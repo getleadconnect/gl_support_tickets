@@ -17,6 +17,7 @@ interface GstReportData {
   customer_id: number;
   customer_name: string;
   total_amount: number;
+  gst_rate:number;
   gst_amount: number;
   cgst_amount: number;
   sgst_amount: number;
@@ -49,7 +50,6 @@ export default function GstReport() {
     gst_amount: 0,
     cgst_amount: 0,
     sgst_amount: 0,
-    gst_per: '',
   });
 
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function GstReport() {
           item.invoice_number,
           `"${item.customer_name}"`,
           item.total_amount,
-          totals.gst_per,
+          item.gst_rate,
           item.gst_amount,
           item.cgst_amount,
           item.sgst_amount
@@ -339,9 +339,9 @@ export default function GstReport() {
 
         {/* Info Message */}
         {dateFilter === 'last_3_months' && (
-          <div className="mb-4 px-6 py-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+          <div className="mb-4 ml-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertCircle className="w-4 h-4 text-blue-600 mr-2 flex-shrink-0" />
               <span className="text-sm text-blue-800">
                 Showing last 3 months GST data. Use date filters above to view different date ranges.
               </span>
@@ -352,42 +352,34 @@ export default function GstReport() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card style={{ borderColor: '#e4e4e4' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Amount</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(totals.total_amount)}
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Total Amount:</span>
+                <span className="text-lg font-bold text-blue-600">{formatCurrency(totals.total_amount)}</span>
               </div>
             </CardContent>
           </Card>
           <Card style={{ borderColor: '#e4e4e4' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total GST Amount</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(totals.gst_amount)}
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Total GST:</span>
+                <span className="text-lg font-bold text-green-600">{formatCurrency(totals.gst_amount)}</span>
               </div>
             </CardContent>
           </Card>
           <Card style={{ borderColor: '#e4e4e4' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total CGST Amount</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {formatCurrency(totals.cgst_amount)}
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Total CGST:</span>
+                <span className="text-lg font-bold text-orange-600">{formatCurrency(totals.cgst_amount)}</span>
               </div>
             </CardContent>
           </Card>
           <Card style={{ borderColor: '#e4e4e4' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total SGST Amount</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {formatCurrency(totals.sgst_amount)}
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Total SGST:</span>
+                <span className="text-lg font-bold text-purple-600">{formatCurrency(totals.sgst_amount)}</span>
               </div>
             </CardContent>
           </Card>
@@ -472,7 +464,7 @@ export default function GstReport() {
                           {formatCurrency(item.total_amount)}
                         </TableCell>
                         <TableCell className="text-center" style={{ borderColor: '#e4e4e4' }}>
-                          {totals.gst_per}
+                          {item.gst_rate}
                         </TableCell>
                         <TableCell className="text-right" style={{ borderColor: '#e4e4e4' }}>
                           {formatCurrency(item.cgst_amount)}

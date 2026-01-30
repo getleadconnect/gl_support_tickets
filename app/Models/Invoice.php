@@ -25,6 +25,8 @@ class Invoice extends Model
         'description',
         'total_amount',
         'discount',
+        'gst_rate',
+        'taxable_amount',
         'gst_amount',
         'cgst_amount',
         'sgst_amount',
@@ -48,7 +50,7 @@ class Invoice extends Model
         'net_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'balance_due' => 'decimal:2',
-        'invoice_date' => 'date',
+        'invoice_date' => 'datetime',
     ];
     
     public function ticket()
@@ -77,3 +79,6 @@ class Invoice extends Model
     }
 
 }
+
+
+

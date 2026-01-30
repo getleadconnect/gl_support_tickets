@@ -292,6 +292,35 @@ Route::middleware('auth:sanctum')->group(function () {
     // GST rate route
     Route::get('/gst/rate', function () {
         $gst = DB::table('gst')->first();
-        return response()->json(['gst' => $gst ? $gst->gst : 18]);
+        return response()->json(['gst' => $gst ? $gst->gst : null]);
+    });
+
+    // Update GST rate route
+    Route::post('/gst/update', function (Illuminate\Http\Request $request) {
+        $request->validate([
+            'gst' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $gst = DB::table('gst')->first();
+
+        if ($gst) {
+            DB::table('gst')->where('id', $gst->id)->update([
+                'gst' => $request->gst,
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('gst')->insert([
+                'gst' => $request->gst,
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'GST rate updated successfully',
+            'gst' => $request->gst
+        ]);
     });
 });

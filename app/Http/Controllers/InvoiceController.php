@@ -111,7 +111,7 @@ class InvoiceController extends Controller
             'balance_due' => 'required|numeric|min:0',
             'payment_mode' => 'required|in:Cash,Card,UPI,Bank Transfer,Credit',
             'payment_status' => 'nullable|string',
-            'invoice_date' => 'required|date',
+            'invoice_date' => 'nullable|date',
             'products' => 'nullable|array',
             'service_type' => 'nullable|in:Shop,Outsource',
             'description' => 'nullable|string|max:1000',
@@ -161,7 +161,7 @@ class InvoiceController extends Controller
                 'balance_due' => $validated['balance_due'],
                 'payment_method' => $validated['payment_mode'],
                 'status' => $validated['payment_status'] ?? 'credit',
-                'invoice_date' => $validated['invoice_date'],
+                'invoice_date' => now(),
                 'service_type' => $validated['service_type'] ?? null,
                 'description' => $validated['description'] ?? null,
                 'invoice_type' => $validated['invoice_type'] ?? 'without_gst',
@@ -195,6 +195,7 @@ class InvoiceController extends Controller
                 'item_amount' => $invoice->item_cost,
                 'total_amount' => $invoice->total_amount,
                 'discount' => $invoice->discount,
+                'gst_rate'=>$invoice->gst_rate,
                 'gst_amount' => $invoice->gst_amount,
                 'net_amount' => $invoice->net_amount,
                 'paid_amount' => $invoice->paid_amount,
@@ -205,14 +206,17 @@ class InvoiceController extends Controller
             ]);
 
             // Create payment due record
-            $payment = PaymentDue::create([
-                'invoice_id' => $invoice->id,
-                'ticket_id' => $invoice->ticket_id,
-                'customer_id' => $invoice->customer_id,
-                'branch_id' => $branchId,
-                'balance_due' => $invoice->balance_due,
-                'created_by' => Auth::id() ?? 1,
-            ]);
+            if($invoice->balance_due>0)
+                {
+                    $payment = PaymentDue::create([
+                        'invoice_id' => $invoice->id,
+                        'ticket_id' => $invoice->ticket_id,
+                        'customer_id' => $invoice->customer_id,
+                        'branch_id' => $branchId,
+                        'balance_due' => $invoice->balance_due,
+                        'created_by' => Auth::id() ?? 1,
+                    ]);
+                }
 
             // If products are provided, you can store them in a separate invoice_items table if needed
             // For now, the products are already linked through the ticket's product_tickets table

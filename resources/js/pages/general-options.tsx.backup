@@ -84,8 +84,7 @@ import {
   MapPin,
   UserPlus,
   Bell,
-  Send,
-  Sliders
+  Send
 } from 'lucide-react';
 
 interface User {
@@ -277,18 +276,6 @@ interface CompanyLogo {
   name: string | null;
   type: 'Logo' | 'Favicon';
   is_active: boolean;
-  created_by: number;
-  created_at: string;
-  updated_at: string;
-  creator?: {
-    id: number;
-    name: string;
-  };
-}
-
-interface Accessory {
-  id: number;
-  name: string;
   created_by: number;
   created_at: string;
   updated_at: string;
@@ -577,28 +564,6 @@ export default function Settings() {
     designation_id: '',
     branch_id: '',
   });
-
-  // Page loading state
-  const [pageLoading, setPageLoading] = useState(true);
-
-  // Accessories state
-  const [accessories, setAccessories] = useState<Accessory[]>([]);
-  const [loadingAccessories, setLoadingAccessories] = useState(false);
-  const [errorAccessories, setErrorAccessories] = useState<string | null>(null);
-  const [currentPageAccessories, setCurrentPageAccessories] = useState(1);
-  const [perPageAccessories, setPerPageAccessories] = useState(10);
-  const [searchTermAccessories, setSearchTermAccessories] = useState("");
-  const [totalPagesAccessories, setTotalPagesAccessories] = useState(1);
-  const [totalAccessories, setTotalAccessories] = useState(0);
-  const [savingAccessory, setSavingAccessory] = useState(false);
-  const [updatingAccessory, setUpdatingAccessory] = useState(false);
-  const [accessoryFormData, setAccessoryFormData] = useState({
-    name: ""
-  });
-  const [editAccessoryModalOpen, setEditAccessoryModalOpen] = useState(false);
-  const [deleteAccessoryModalOpen, setDeleteAccessoryModalOpen] = useState(false);
-  const [editingAccessory, setEditingAccessory] = useState<Accessory | null>(null);
-  const [deletingAccessory, setDeletingAccessory] = useState<Accessory | null>(null);
   const [saving, setSaving] = useState(false);
   const [allBranchesForDropdown, setAllBranchesForDropdown] = useState<any[]>([]);
 
@@ -613,7 +578,6 @@ export default function Settings() {
   const [viewAssignedAgentsModalOpen, setViewAssignedAgentsModalOpen] = useState(false);
   const [viewingManagerAgents, setViewingManagerAgents] = useState<User | null>(null);
   const [assignedAgentsList, setAssignedAgentsList] = useState<any[]>([]);
-
   const [loadingAssignedAgents, setLoadingAssignedAgents] = useState(false);
   const [deleteAgentConfirmOpen, setDeleteAgentConfirmOpen] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<any>(null);
@@ -785,13 +749,6 @@ export default function Settings() {
   const [editFieldMultiselect, setEditFieldMultiselect] = useState(false);
   const [editFieldValues, setEditFieldValues] = useState<string[]>(['']);
 
-  // GST state
-  const [gstRate, setGstRate] = useState<number>(18);
-  const [loadingGst, setLoadingGst] = useState(false);
-  const [savingGst, setSavingGst] = useState(false);
-  const [editingGst, setEditingGst] = useState(false);
-  const [tempGstRate, setTempGstRate] = useState<string>('18');
-
   // QR Code state
   const [qrcodes, setQrcodes] = useState<QRCodeItem[]>([]);
   const [loadingQRCodes, setLoadingQRCodes] = useState(false);
@@ -900,41 +857,20 @@ export default function Settings() {
     const debounceTimer = setTimeout(() => {
       fetchCompanyLogos();
     }, 300);
-
+    
     return () => clearTimeout(debounceTimer);
   }, [currentPageLogos, perPageLogos, searchTermLogos]);
 
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchAccessories();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [currentPageAccessories, perPageAccessories, searchTermAccessories]);
-
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        await Promise.all([
-          fetchCurrentUser(),
-          fetchAllBranchesForDropdown(),
-          fetchBrands(),
-          fetchCategories(),
-          fetchDepartments(),
-          fetchDesignations(),
-          fetchTicketLabels(),
-          fetchAdditionalFields(),
-          fetchQRCodes(),
-          fetchGstRate()
-        ]);
-      } catch (error) {
-        console.error('Error initializing data:', error);
-      } finally {
-        setPageLoading(false);
-      }
-    };
-
-    initializeData();
+    fetchCurrentUser();
+    fetchAllBranchesForDropdown();
+    fetchBrands();
+    fetchCategories();
+    fetchDepartments();
+    fetchDesignations();
+    fetchTicketLabels();
+    fetchAdditionalFields();
+    fetchQRCodes();
   }, []);
 
   // Update link when branch is selected
@@ -1028,125 +964,6 @@ export default function Settings() {
       setAllBranchesForDropdown(response.data.data || []);
     } catch (err) {
       console.error('Error fetching branches for dropdown:', err);
-    }
-  };
-
-  // Accessories Functions
-  const fetchAccessories = async () => {
-    setLoadingAccessories(true);
-    setErrorAccessories(null);
-    try {
-      const response = await axios.get("/accessories", {
-        params: {
-          page: currentPageAccessories,
-          per_page: perPageAccessories,
-          search: searchTermAccessories
-        }
-      });
-      
-      if (response.data) {
-        setAccessories(response.data.data);
-        setTotalPagesAccessories(response.data.last_page);
-        setTotalAccessories(response.data.total);
-      }
-    } catch (error) {
-      console.error("Error fetching accessories:", error);
-      setErrorAccessories("Failed to load accessories");
-      toast.error("Failed to load accessories");
-    } finally {
-      setLoadingAccessories(false);
-    }
-  };
-
-  const handleAccessoryFormChange = (field: string, value: any) => {
-    setAccessoryFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAddAccessory = async () => {
-    if (!accessoryFormData.name.trim()) {
-      toast.error("Please enter accessory name");
-      return;
-    }
-
-    setSavingAccessory(true);
-    try {
-      const response = await axios.post("/accessories", {
-        name: accessoryFormData.name.trim()
-      });
-
-      if (response.data) {
-        await fetchAccessories();
-        setAccessoryFormData({ name: "" });
-        toast.success("Accessory added successfully!");
-      }
-    } catch (error: any) {
-      console.error("Error adding accessory:", error);
-      if (error.response?.data?.errors?.name) {
-        toast.error(error.response.data.errors.name[0]);
-      } else {
-        toast.error("Failed to add accessory");
-      }
-    } finally {
-      setSavingAccessory(false);
-    }
-  };
-
-  const handleEditAccessory = (accessory: Accessory) => {
-    setEditingAccessory(accessory);
-    setAccessoryFormData({
-      name: accessory.name
-    });
-    setEditAccessoryModalOpen(true);
-  };
-
-  const handleUpdateAccessory = async () => {
-    if (!editingAccessory) return;
-
-    setUpdatingAccessory(true);
-    try {
-      const response = await axios.put(`/accessories/${editingAccessory.id}`, {
-        name: accessoryFormData.name.trim()
-      });
-
-      if (response.data) {
-        await fetchAccessories();
-        setEditAccessoryModalOpen(false);
-        setEditingAccessory(null);
-        setAccessoryFormData({ name: "" });
-        toast.success("Accessory updated successfully!");
-      }
-    } catch (error: any) {
-      console.error("Error updating accessory:", error);
-      if (error.response?.data?.errors?.name) {
-        toast.error(error.response.data.errors.name[0]);
-      } else {
-        toast.error("Failed to update accessory");
-      }
-    } finally {
-      setUpdatingAccessory(false);
-    }
-  };
-
-  const handleDeleteAccessory = (accessory: Accessory) => {
-    setDeletingAccessory(accessory);
-    setDeleteAccessoryModalOpen(true);
-  };
-
-  const confirmDeleteAccessory = async () => {
-    if (!deletingAccessory) return;
-
-    try {
-      await axios.delete(`/accessories/${deletingAccessory.id}`);
-      await fetchAccessories();
-      setDeleteAccessoryModalOpen(false);
-      setDeletingAccessory(null);
-      toast.success("Accessory deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting accessory:", error);
-      toast.error("Failed to delete accessory");
     }
   };
 
@@ -2772,68 +2589,6 @@ export default function Settings() {
     }
   };
 
-  // GST Functions
-  const fetchGstRate = async () => {
-    setLoadingGst(true);
-    try {
-      const response = await axios.get('/gst/rate');
-      if (response.data) {
-        const gstValue = response.data.gst;
-        if (gstValue !== null && gstValue !== undefined) {
-          setGstRate(gstValue);
-          setTempGstRate(gstValue.toString());
-        } else {
-          setGstRate(0);
-          setTempGstRate('');
-        }
-      }
-    } catch (error: any) {
-      console.error('Error fetching GST rate:', error);
-      toast.error('Failed to fetch GST rate');
-    } finally {
-      setLoadingGst(false);
-    }
-  };
-
-  const handleUpdateGst = async () => {
-    if (!tempGstRate || tempGstRate.trim() === '') {
-      toast.error('Please enter a GST percentage');
-      return;
-    }
-
-    const gstValue = parseFloat(tempGstRate);
-
-    if (isNaN(gstValue) || gstValue < 0 || gstValue > 100) {
-      toast.error('Please enter a valid GST percentage between 0 and 100');
-      return;
-    }
-
-    setSavingGst(true);
-    try {
-      const response = await axios.post('/gst/update', { gst: gstValue });
-
-      if (response.data.success) {
-        setGstRate(gstValue);
-        setEditingGst(false);
-        toast.success('GST rate updated successfully!');
-      }
-    } catch (error: any) {
-      console.error('Error updating GST rate:', error);
-      if (error.response?.data?.message) {
-        toast.error(`Error: ${error.response.data.message}`);
-      } else {
-        toast.error('Failed to update GST rate. Please try again.');
-      }
-    } finally {
-      setSavingGst(false);
-    }
-  };
-
-  const handleCancelGstEdit = () => {
-    setTempGstRate(gstRate.toString());
-    setEditingGst(false);
-  };
-
   const confirmDeleteDepartment = async () => {
     if (!deletingDepartment) return;
 
@@ -3218,7 +2973,7 @@ export default function Settings() {
   const fetchCompanyLogos = async () => {
     setLoadingLogos(true);
     setErrorLogos(null);
-
+    
     try {
       const response = await axios.get('/company-logos', {
         params: {
@@ -3227,7 +2982,7 @@ export default function Settings() {
           search: searchTermLogos
         }
       });
-
+      
       setCompanyLogos(response.data.data);
       setCurrentPageLogos(response.data.current_page);
       setTotalPagesLogos(response.data.last_page);
@@ -3369,29 +3124,16 @@ export default function Settings() {
   };
 
   return (
-    <DashboardLayout title="General Options">
+    <DashboardLayout title="Settings">
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
-          {pageLoading ? (
-            <div className="h-96 flex items-center justify-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            </div>
-          ) : (
           <Tabs
-            defaultValue="accessories"
+            defaultValue="roles"
             className="w-full flex flex-col lg:flex-row gap-4 lg:gap-6"
             orientation="vertical"
           >
             {/* Desktop vertical tabs */}
             <TabsList className="hidden lg:flex flex-col h-fit w-[200px] p-1 bg-gray-50 justify-start">
-              {/* Accessories tab */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <TabsTrigger value="accessories" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Accessories
-                </TabsTrigger>
-              )}
-
               {/* Show Roles tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="roles" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
@@ -3406,32 +3148,26 @@ export default function Settings() {
                   Branches
                 </TabsTrigger>
               )}
-
-              {/* Show these tabs for role_id=1 (Admin) and role_id=4 */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <>
-                  <TabsTrigger value="brands" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Brands
-                  </TabsTrigger>
-                  <TabsTrigger value="categories" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <FolderOpen className="h-4 w-4" />
-                    Categories
-                  </TabsTrigger>
-                  <TabsTrigger value="departments" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Departments
-                  </TabsTrigger>
-                  <TabsTrigger value="designations" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    Designations
-                  </TabsTrigger>
-                  <TabsTrigger value="ticket-labels" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Tags className="h-4 w-4" />
-                    Ticket Labels
-                  </TabsTrigger>
-                </>
-              )}
+              <TabsTrigger value="brands" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Brands
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Categories
+              </TabsTrigger>
+              <TabsTrigger value="departments" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Departments
+              </TabsTrigger>
+              <TabsTrigger value="designations" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Designations
+              </TabsTrigger>
+              <TabsTrigger value="ticket-labels" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Tags className="h-4 w-4" />
+                Ticket Labels
+              </TabsTrigger>
               {/* Show Additional Fields tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="additional-fields" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
@@ -3439,24 +3175,10 @@ export default function Settings() {
                   Additional Fields
                 </TabsTrigger>
               )}
-              {/* Show Options tab only for role_id=1 (Admin) */}
-              {currentUser?.role_id === 1 && (
-                <TabsTrigger value="options" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                  <Sliders className="h-4 w-4" />
-                  Options
-                </TabsTrigger>
-              )}
             </TabsList>
 
             {/* Mobile horizontal scrollable tabs */}
             <TabsList className="flex lg:hidden flex-row w-full p-1 bg-gray-50 justify-start overflow-x-auto">
-              {/* Accessories tab */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <TabsTrigger value="accessories" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                  <Package className="h-3 w-3" />
-                  Accessories
-                </TabsTrigger>
-              )}
               {/* Show Roles tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="roles" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
@@ -3471,32 +3193,26 @@ export default function Settings() {
                   Branches
                 </TabsTrigger>
               )}
-
-              {/* Show these tabs for role_id=1 (Admin) and role_id=4 */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <>
-                  <TabsTrigger value="brands" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Package className="h-3 w-3" />
-                    Brands
-                  </TabsTrigger>
-                  <TabsTrigger value="categories" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <FolderOpen className="h-3 w-3" />
-                    Categories
-                  </TabsTrigger>
-                  <TabsTrigger value="departments" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Building2 className="h-3 w-3" />
-                    Departments
-                  </TabsTrigger>
-                  <TabsTrigger value="designations" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Briefcase className="h-3 w-3" />
-                    Designations
-                  </TabsTrigger>
-                  <TabsTrigger value="ticket-labels" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Tags className="h-3 w-3" />
-                    Labels
-                  </TabsTrigger>
-                </>
-              )}
+              <TabsTrigger value="brands" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Package className="h-3 w-3" />
+                Brands
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <FolderOpen className="h-3 w-3" />
+                Categories
+              </TabsTrigger>
+              <TabsTrigger value="departments" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Building2 className="h-3 w-3" />
+                Departments
+              </TabsTrigger>
+              <TabsTrigger value="designations" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Briefcase className="h-3 w-3" />
+                Designations
+              </TabsTrigger>
+              <TabsTrigger value="ticket-labels" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Tags className="h-3 w-3" />
+                Labels
+              </TabsTrigger>
               {/* Show Additional Fields tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="additional-fields" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
@@ -3504,234 +3220,11 @@ export default function Settings() {
                   Fields
                 </TabsTrigger>
               )}
-              {/* Show Options tab only for role_id=1 (Admin) */}
-              {currentUser?.role_id === 1 && (
-                <TabsTrigger value="options" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                  <Sliders className="h-3 w-3" />
-                  Options
-                </TabsTrigger>
-              )}
             </TabsList>
 
             <div className="flex-1">{/* Content wrapper */}
             
 
-
-            <TabsContent value="accessories" className="mt-1.5">
-              <div className="space-y-4">
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900" style={{fontSize: "22px"}}>Accessories Management</h3>
-                  <p className="text-sm text-gray-500 mt-1">Manage accessories details in your system. Create, edit, or delete accessories for organizing purpose.</p>
-                </div>
-                
-                {/* Two-column layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  
-                  {/* Left Column - Add Accessory Form (25% width) */}
-                  <div className="lg:col-span-1">
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="accessory-name" className="text-sm font-medium">Accessory Name</Label>
-                        <Input
-                          id="accessory-name"
-                          type="text"
-                          placeholder="Enter accessory name"
-                          value={accessoryFormData.name}
-                          onChange={(e) => handleAccessoryFormChange("name", e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <Button
-                        onClick={handleAddAccessory}
-                        disabled={savingAccessory || !accessoryFormData.name.trim()}
-                        className="w-full bg-gray-800 hover:bg-gray-900"
-                      >
-                        {savingAccessory ? "Adding..." : "Add Accessory"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Right Column - Accessories Table (75% width) */}
-                  <div className="lg:col-span-3">
-                    {/* Controls */}
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Rows per page:</span>
-                        <Select
-                          value={perPageAccessories.toString()}
-                          onValueChange={(value) => {
-                            setPerPageAccessories(Number(value));
-                            setCurrentPageAccessories(1);
-                          }}
-                        >
-                          <SelectTrigger className="w-20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="20">20</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Search className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <Input
-                          type="text"
-                          placeholder="Search accessories..."
-                          className="pl-10 w-72"
-                          value={searchTermAccessories}
-                          onChange={(e) => setSearchTermAccessories(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Table */}
-                    {loadingAccessories ? (
-                      <div className="h-48 flex items-center justify-center">
-                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                      </div>
-                    ) : errorAccessories ? (
-                      <div className="h-48 flex items-center justify-center">
-                        <div className="text-center">
-                          <p className="text-red-500 mb-2">{errorAccessories}</p>
-                          <Button onClick={fetchAccessories} variant="outline">
-                            Try Again
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{border: "1px solid #e4e4e4", borderRadius: "6px", overflow: "hidden"}}>
-                        <Table>
-                          <TableHeader className="bg-gray-50">
-                            <TableRow style={{borderBottom: "1px solid #e4e4e4"}}>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: "14px"}}>S.No</TableHead>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: "14px"}}>Accessory Name</TableHead>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: "14px"}}>Created By</TableHead>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3 text-right" style={{fontSize: "14px"}}>Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {accessories.length === 0 ? (
-                              <TableRow style={{borderBottom: "1px solid #e4e4e4"}}>
-                                <TableCell colSpan={4} className="text-center py-8 text-gray-500" style={{fontSize: "14px"}}>
-                                  No accessories found
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              accessories.map((accessory, index) => (
-                                <TableRow key={accessory.id} className="hover:bg-gray-50" style={{borderBottom: "1px solid #e4e4e4"}}>
-                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: "14px"}}>
-                                    {((currentPageAccessories - 1) * perPageAccessories) + index + 1}
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-gray-900" style={{fontSize: "14px"}}>
-                                    {accessory.name}
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: "14px"}}>
-                                    {accessory.creator?.name || "-"}
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-right">
-                                    <div className="flex items-center justify-end space-x-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleEditAccessory(accessory)}
-                                        className="h-7 w-7 p-0"
-                                      >
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleDeleteAccessory(accessory)}
-                                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-
-                    {/* Pagination */}
-                    {accessories.length > 0 && (
-                      <div className="flex items-center justify-between pt-4">
-                        <div className="text-sm text-gray-600">
-                          Showing {((currentPageAccessories - 1) * perPageAccessories) + 1} to {Math.min(currentPageAccessories * perPageAccessories, totalAccessories)} of {totalAccessories} entries
-                        </div>
-                        
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPageAccessories(1)}
-                            disabled={currentPageAccessories === 1}
-                            className="h-8 w-8 p-0"
-                          >
-                            <ChevronsLeft className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPageAccessories(Math.max(1, currentPageAccessories - 1))}
-                            disabled={currentPageAccessories === 1}
-                            className="h-8 w-8 p-0"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: Math.min(5, totalPagesAccessories) }, (_, i) => {
-                              const page = i + 1;
-                              return (
-                                <Button
-                                  key={page}
-                                  variant={currentPageAccessories === page ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => setCurrentPageAccessories(page)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  {page}
-                                </Button>
-                              );
-                            })}
-                          </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPageAccessories(Math.min(totalPagesAccessories, currentPageAccessories + 1))}
-                            disabled={currentPageAccessories === totalPagesAccessories}
-                            className="h-8 w-8 p-0"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPageAccessories(totalPagesAccessories)}
-                            disabled={currentPageAccessories === totalPagesAccessories}
-                            className="h-8 w-8 p-0"
-                          >
-                            <ChevronsRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
 
             <TabsContent value="roles" className="mt-1.5">
               <div className="space-y-4">
@@ -5826,63 +5319,6 @@ export default function Settings() {
               </div>
             </TabsContent>
 
-            <TabsContent value="options" className="mt-1.5">
-              <div className="space-y-4">
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Options</h3>
-                  <p className="text-sm text-gray-500 mt-1">Configure additional options and settings</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                {/* GST Rate Card */}
-                <div className="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900">GST Rate</h4>
-                    <p className="text-sm text-gray-500 mt-1">Manage the default GST percentage for invoices</p>
-                  </div>
-
-                  {loadingGst ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="h-6 w-6 animate-spin text-purple-600" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0">
-                        <Label htmlFor="gst-rate" className="text-base font-medium text-gray-900">
-                          GST Percentage (%)
-                        </Label>
-                      </div>
-                      <div className="w-32">
-                        <Input
-                          id="gst-rate"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={tempGstRate}
-                          onChange={(e) => setTempGstRate(e.target.value)}
-                          placeholder="Enter GST"
-                        />
-                      </div>
-                      <Button
-                        onClick={handleUpdateGst}
-                        disabled={savingGst}
-                      >
-                        {savingGst ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          'Update GST'
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-
             {/* QR Codes Tab */}
 
 
@@ -5891,7 +5327,6 @@ export default function Settings() {
             {/* SMS Settings Tab Content */}
             </div>{/* End of content wrapper */}
           </Tabs>
-          )}
         </div>
 
         {/* User Modal (Add/Edit) */}
@@ -7532,57 +6967,6 @@ export default function Settings() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 {savingLogo ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Edit Accessory Modal */}
-        <Dialog open={editAccessoryModalOpen} onOpenChange={setEditAccessoryModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Accessory</DialogTitle>
-              <DialogDescription>
-                Update the accessory information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-accessory-name" className="text-sm font-medium">Accessory Name</Label>
-                <Input
-                  id="edit-accessory-name"
-                  type="text"
-                  placeholder="Enter accessory name"
-                  value={accessoryFormData.name}
-                  onChange={(e) => handleAccessoryFormChange("name", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditAccessoryModalOpen(false)} disabled={updatingAccessory}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateAccessory} disabled={updatingAccessory || !accessoryFormData.name.trim()}>
-                {updatingAccessory ? "Updating..." : "Update Accessory"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Accessory Confirmation Modal */}
-        <AlertDialog open={deleteAccessoryModalOpen} onOpenChange={setDeleteAccessoryModalOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Accessory</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete the accessory "{deletingAccessory?.name}"? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteAccessory} className="bg-red-600 hover:bg-red-700">
-                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

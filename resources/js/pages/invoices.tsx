@@ -639,7 +639,7 @@ export default function Invoices() {
                             className="bg-white hover:bg-gray-50 text-blue-600 border border-blue-600 px-3 py-1 text-xs font-medium rounded"
                             title="Print Invoice"
                           >
-                            <Printer className="h-4 w-4 text-red-500" /> &nbsp;Print
+                            <Printer className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
 
@@ -652,7 +652,7 @@ export default function Invoices() {
                             className="bg-white hover:bg-gray-50 text-blue-600 border border-blue-600 px-3 py-1 text-xs font-medium rounded"
                             title="Print Invoice"
                           >
-                            <Printer className="h-4 w-4 text-red-500" /> &nbsp;Print
+                            <Printer className="h-4 w-4 text-red-500" />
                           </Button>
 
                           {/*<Button

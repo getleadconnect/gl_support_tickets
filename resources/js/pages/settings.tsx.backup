@@ -84,8 +84,7 @@ import {
   MapPin,
   UserPlus,
   Bell,
-  Send,
-  Sliders
+  Send
 } from 'lucide-react';
 
 interface User {
@@ -277,18 +276,6 @@ interface CompanyLogo {
   name: string | null;
   type: 'Logo' | 'Favicon';
   is_active: boolean;
-  created_by: number;
-  created_at: string;
-  updated_at: string;
-  creator?: {
-    id: number;
-    name: string;
-  };
-}
-
-interface Accessory {
-  id: number;
-  name: string;
   created_by: number;
   created_at: string;
   updated_at: string;
@@ -577,28 +564,6 @@ export default function Settings() {
     designation_id: '',
     branch_id: '',
   });
-
-  // Page loading state
-  const [pageLoading, setPageLoading] = useState(true);
-
-  // Accessories state
-  const [accessories, setAccessories] = useState<Accessory[]>([]);
-  const [loadingAccessories, setLoadingAccessories] = useState(false);
-  const [errorAccessories, setErrorAccessories] = useState<string | null>(null);
-  const [currentPageAccessories, setCurrentPageAccessories] = useState(1);
-  const [perPageAccessories, setPerPageAccessories] = useState(10);
-  const [searchTermAccessories, setSearchTermAccessories] = useState("");
-  const [totalPagesAccessories, setTotalPagesAccessories] = useState(1);
-  const [totalAccessories, setTotalAccessories] = useState(0);
-  const [savingAccessory, setSavingAccessory] = useState(false);
-  const [updatingAccessory, setUpdatingAccessory] = useState(false);
-  const [accessoryFormData, setAccessoryFormData] = useState({
-    name: ""
-  });
-  const [editAccessoryModalOpen, setEditAccessoryModalOpen] = useState(false);
-  const [deleteAccessoryModalOpen, setDeleteAccessoryModalOpen] = useState(false);
-  const [editingAccessory, setEditingAccessory] = useState<Accessory | null>(null);
-  const [deletingAccessory, setDeletingAccessory] = useState<Accessory | null>(null);
   const [saving, setSaving] = useState(false);
   const [allBranchesForDropdown, setAllBranchesForDropdown] = useState<any[]>([]);
 
@@ -613,7 +578,6 @@ export default function Settings() {
   const [viewAssignedAgentsModalOpen, setViewAssignedAgentsModalOpen] = useState(false);
   const [viewingManagerAgents, setViewingManagerAgents] = useState<User | null>(null);
   const [assignedAgentsList, setAssignedAgentsList] = useState<any[]>([]);
-
   const [loadingAssignedAgents, setLoadingAssignedAgents] = useState(false);
   const [deleteAgentConfirmOpen, setDeleteAgentConfirmOpen] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<any>(null);
@@ -785,13 +749,6 @@ export default function Settings() {
   const [editFieldMultiselect, setEditFieldMultiselect] = useState(false);
   const [editFieldValues, setEditFieldValues] = useState<string[]>(['']);
 
-  // GST state
-  const [gstRate, setGstRate] = useState<number>(18);
-  const [loadingGst, setLoadingGst] = useState(false);
-  const [savingGst, setSavingGst] = useState(false);
-  const [editingGst, setEditingGst] = useState(false);
-  const [tempGstRate, setTempGstRate] = useState<string>('18');
-
   // QR Code state
   const [qrcodes, setQrcodes] = useState<QRCodeItem[]>([]);
   const [loadingQRCodes, setLoadingQRCodes] = useState(false);
@@ -900,41 +857,20 @@ export default function Settings() {
     const debounceTimer = setTimeout(() => {
       fetchCompanyLogos();
     }, 300);
-
+    
     return () => clearTimeout(debounceTimer);
   }, [currentPageLogos, perPageLogos, searchTermLogos]);
 
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchAccessories();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [currentPageAccessories, perPageAccessories, searchTermAccessories]);
-
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        await Promise.all([
-          fetchCurrentUser(),
-          fetchAllBranchesForDropdown(),
-          fetchBrands(),
-          fetchCategories(),
-          fetchDepartments(),
-          fetchDesignations(),
-          fetchTicketLabels(),
-          fetchAdditionalFields(),
-          fetchQRCodes(),
-          fetchGstRate()
-        ]);
-      } catch (error) {
-        console.error('Error initializing data:', error);
-      } finally {
-        setPageLoading(false);
-      }
-    };
-
-    initializeData();
+    fetchCurrentUser();
+    fetchAllBranchesForDropdown();
+    fetchBrands();
+    fetchCategories();
+    fetchDepartments();
+    fetchDesignations();
+    fetchTicketLabels();
+    fetchAdditionalFields();
+    fetchQRCodes();
   }, []);
 
   // Update link when branch is selected
@@ -1028,125 +964,6 @@ export default function Settings() {
       setAllBranchesForDropdown(response.data.data || []);
     } catch (err) {
       console.error('Error fetching branches for dropdown:', err);
-    }
-  };
-
-  // Accessories Functions
-  const fetchAccessories = async () => {
-    setLoadingAccessories(true);
-    setErrorAccessories(null);
-    try {
-      const response = await axios.get("/accessories", {
-        params: {
-          page: currentPageAccessories,
-          per_page: perPageAccessories,
-          search: searchTermAccessories
-        }
-      });
-      
-      if (response.data) {
-        setAccessories(response.data.data);
-        setTotalPagesAccessories(response.data.last_page);
-        setTotalAccessories(response.data.total);
-      }
-    } catch (error) {
-      console.error("Error fetching accessories:", error);
-      setErrorAccessories("Failed to load accessories");
-      toast.error("Failed to load accessories");
-    } finally {
-      setLoadingAccessories(false);
-    }
-  };
-
-  const handleAccessoryFormChange = (field: string, value: any) => {
-    setAccessoryFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAddAccessory = async () => {
-    if (!accessoryFormData.name.trim()) {
-      toast.error("Please enter accessory name");
-      return;
-    }
-
-    setSavingAccessory(true);
-    try {
-      const response = await axios.post("/accessories", {
-        name: accessoryFormData.name.trim()
-      });
-
-      if (response.data) {
-        await fetchAccessories();
-        setAccessoryFormData({ name: "" });
-        toast.success("Accessory added successfully!");
-      }
-    } catch (error: any) {
-      console.error("Error adding accessory:", error);
-      if (error.response?.data?.errors?.name) {
-        toast.error(error.response.data.errors.name[0]);
-      } else {
-        toast.error("Failed to add accessory");
-      }
-    } finally {
-      setSavingAccessory(false);
-    }
-  };
-
-  const handleEditAccessory = (accessory: Accessory) => {
-    setEditingAccessory(accessory);
-    setAccessoryFormData({
-      name: accessory.name
-    });
-    setEditAccessoryModalOpen(true);
-  };
-
-  const handleUpdateAccessory = async () => {
-    if (!editingAccessory) return;
-
-    setUpdatingAccessory(true);
-    try {
-      const response = await axios.put(`/accessories/${editingAccessory.id}`, {
-        name: accessoryFormData.name.trim()
-      });
-
-      if (response.data) {
-        await fetchAccessories();
-        setEditAccessoryModalOpen(false);
-        setEditingAccessory(null);
-        setAccessoryFormData({ name: "" });
-        toast.success("Accessory updated successfully!");
-      }
-    } catch (error: any) {
-      console.error("Error updating accessory:", error);
-      if (error.response?.data?.errors?.name) {
-        toast.error(error.response.data.errors.name[0]);
-      } else {
-        toast.error("Failed to update accessory");
-      }
-    } finally {
-      setUpdatingAccessory(false);
-    }
-  };
-
-  const handleDeleteAccessory = (accessory: Accessory) => {
-    setDeletingAccessory(accessory);
-    setDeleteAccessoryModalOpen(true);
-  };
-
-  const confirmDeleteAccessory = async () => {
-    if (!deletingAccessory) return;
-
-    try {
-      await axios.delete(`/accessories/${deletingAccessory.id}`);
-      await fetchAccessories();
-      setDeleteAccessoryModalOpen(false);
-      setDeletingAccessory(null);
-      toast.success("Accessory deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting accessory:", error);
-      toast.error("Failed to delete accessory");
     }
   };
 
@@ -2772,68 +2589,6 @@ export default function Settings() {
     }
   };
 
-  // GST Functions
-  const fetchGstRate = async () => {
-    setLoadingGst(true);
-    try {
-      const response = await axios.get('/gst/rate');
-      if (response.data) {
-        const gstValue = response.data.gst;
-        if (gstValue !== null && gstValue !== undefined) {
-          setGstRate(gstValue);
-          setTempGstRate(gstValue.toString());
-        } else {
-          setGstRate(0);
-          setTempGstRate('');
-        }
-      }
-    } catch (error: any) {
-      console.error('Error fetching GST rate:', error);
-      toast.error('Failed to fetch GST rate');
-    } finally {
-      setLoadingGst(false);
-    }
-  };
-
-  const handleUpdateGst = async () => {
-    if (!tempGstRate || tempGstRate.trim() === '') {
-      toast.error('Please enter a GST percentage');
-      return;
-    }
-
-    const gstValue = parseFloat(tempGstRate);
-
-    if (isNaN(gstValue) || gstValue < 0 || gstValue > 100) {
-      toast.error('Please enter a valid GST percentage between 0 and 100');
-      return;
-    }
-
-    setSavingGst(true);
-    try {
-      const response = await axios.post('/gst/update', { gst: gstValue });
-
-      if (response.data.success) {
-        setGstRate(gstValue);
-        setEditingGst(false);
-        toast.success('GST rate updated successfully!');
-      }
-    } catch (error: any) {
-      console.error('Error updating GST rate:', error);
-      if (error.response?.data?.message) {
-        toast.error(`Error: ${error.response.data.message}`);
-      } else {
-        toast.error('Failed to update GST rate. Please try again.');
-      }
-    } finally {
-      setSavingGst(false);
-    }
-  };
-
-  const handleCancelGstEdit = () => {
-    setTempGstRate(gstRate.toString());
-    setEditingGst(false);
-  };
-
   const confirmDeleteDepartment = async () => {
     if (!deletingDepartment) return;
 
@@ -3218,7 +2973,7 @@ export default function Settings() {
   const fetchCompanyLogos = async () => {
     setLoadingLogos(true);
     setErrorLogos(null);
-
+    
     try {
       const response = await axios.get('/company-logos', {
         params: {
@@ -3227,7 +2982,7 @@ export default function Settings() {
           search: searchTermLogos
         }
       });
-
+      
       setCompanyLogos(response.data.data);
       setCurrentPageLogos(response.data.current_page);
       setTotalPagesLogos(response.data.last_page);
@@ -3369,29 +3124,38 @@ export default function Settings() {
   };
 
   return (
-    <DashboardLayout title="General Options">
+    <DashboardLayout title="Settings">
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
-          {pageLoading ? (
-            <div className="h-96 flex items-center justify-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            </div>
-          ) : (
           <Tabs
-            defaultValue="accessories"
+            defaultValue="users"
             className="w-full flex flex-col lg:flex-row gap-4 lg:gap-6"
             orientation="vertical"
+            onValueChange={(value) => {
+              if (value === 'notification-settings') {
+                fetchNotificationSettings();
+              }
+              if (value === 'sms-settings') {
+                fetchSmsSettings();
+              }
+              if (value === 'telegram-notifications') {
+                fetchTelegramSettings();
+              }
+              if (value === 'company-logo') {
+                fetchCompanyLogos();
+              }
+            }}
           >
             {/* Desktop vertical tabs */}
             <TabsList className="hidden lg:flex flex-col h-fit w-[200px] p-1 bg-gray-50 justify-start">
-              {/* Accessories tab */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <TabsTrigger value="accessories" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Accessories
-                </TabsTrigger>
-              )}
-
+              <TabsTrigger value="users" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <User className="h-4 w-4" />
+                User Settings
+              </TabsTrigger>
+              <TabsTrigger value="company-logo" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Logo & Favicon
+              </TabsTrigger>
               {/* Show Roles tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="roles" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
@@ -3406,32 +3170,26 @@ export default function Settings() {
                   Branches
                 </TabsTrigger>
               )}
-
-              {/* Show these tabs for role_id=1 (Admin) and role_id=4 */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <>
-                  <TabsTrigger value="brands" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Brands
-                  </TabsTrigger>
-                  <TabsTrigger value="categories" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <FolderOpen className="h-4 w-4" />
-                    Categories
-                  </TabsTrigger>
-                  <TabsTrigger value="departments" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Departments
-                  </TabsTrigger>
-                  <TabsTrigger value="designations" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    Designations
-                  </TabsTrigger>
-                  <TabsTrigger value="ticket-labels" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                    <Tags className="h-4 w-4" />
-                    Ticket Labels
-                  </TabsTrigger>
-                </>
-              )}
+              <TabsTrigger value="brands" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Brands
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Categories
+              </TabsTrigger>
+              <TabsTrigger value="departments" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Departments
+              </TabsTrigger>
+              <TabsTrigger value="designations" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Designations
+              </TabsTrigger>
+              <TabsTrigger value="ticket-labels" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <Tags className="h-4 w-4" />
+                Ticket Labels
+              </TabsTrigger>
               {/* Show Additional Fields tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="additional-fields" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
@@ -3439,24 +3197,43 @@ export default function Settings() {
                   Additional Fields
                 </TabsTrigger>
               )}
-              {/* Show Options tab only for role_id=1 (Admin) */}
+              <TabsTrigger value="qr-codes" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                <QrCode className="h-4 w-4" />
+                QR Codes
+              </TabsTrigger>
+              {/* Show Whatsapp Settings tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
-                <TabsTrigger value="options" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
-                  <Sliders className="h-4 w-4" />
-                  Options
+                <TabsTrigger value="notification-settings" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Whatsapp Settings
+                </TabsTrigger>
+              )}
+              {/* Show SMS Settings tab only for role_id=1 (Admin) */}
+              {currentUser?.role_id === 1 && (
+                <TabsTrigger value="sms-settings" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  SMS Settings
+                </TabsTrigger>
+              )}
+              {/* Show Telegram Settings tab only for role_id=1 (Admin) */}
+              {currentUser?.role_id === 1 && (
+                <TabsTrigger value="telegram-notifications" className="w-full justify-start text-sm px-3 py-2 mt-[5px] data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-2">
+                  <Send className="h-4 w-4" />
+                  Telegram Settings
                 </TabsTrigger>
               )}
             </TabsList>
 
             {/* Mobile horizontal scrollable tabs */}
             <TabsList className="flex lg:hidden flex-row w-full p-1 bg-gray-50 justify-start overflow-x-auto">
-              {/* Accessories tab */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <TabsTrigger value="accessories" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                  <Package className="h-3 w-3" />
-                  Accessories
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="users" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <User className="h-3 w-3" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="company-logo" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Building2 className="h-3 w-3" />
+                Logo & Favicon
+              </TabsTrigger>
               {/* Show Roles tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="roles" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
@@ -3471,32 +3248,26 @@ export default function Settings() {
                   Branches
                 </TabsTrigger>
               )}
-
-              {/* Show these tabs for role_id=1 (Admin) and role_id=4 */}
-              {(currentUser?.role_id === 1 || currentUser?.role_id === 4) && (
-                <>
-                  <TabsTrigger value="brands" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Package className="h-3 w-3" />
-                    Brands
-                  </TabsTrigger>
-                  <TabsTrigger value="categories" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <FolderOpen className="h-3 w-3" />
-                    Categories
-                  </TabsTrigger>
-                  <TabsTrigger value="departments" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Building2 className="h-3 w-3" />
-                    Departments
-                  </TabsTrigger>
-                  <TabsTrigger value="designations" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Briefcase className="h-3 w-3" />
-                    Designations
-                  </TabsTrigger>
-                  <TabsTrigger value="ticket-labels" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                    <Tags className="h-3 w-3" />
-                    Labels
-                  </TabsTrigger>
-                </>
-              )}
+              <TabsTrigger value="brands" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Package className="h-3 w-3" />
+                Brands
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <FolderOpen className="h-3 w-3" />
+                Categories
+              </TabsTrigger>
+              <TabsTrigger value="departments" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Building2 className="h-3 w-3" />
+                Departments
+              </TabsTrigger>
+              <TabsTrigger value="designations" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Briefcase className="h-3 w-3" />
+                Designations
+              </TabsTrigger>
+              <TabsTrigger value="ticket-labels" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <Tags className="h-3 w-3" />
+                Labels
+              </TabsTrigger>
               {/* Show Additional Fields tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
                 <TabsTrigger value="additional-fields" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
@@ -3504,143 +3275,617 @@ export default function Settings() {
                   Fields
                 </TabsTrigger>
               )}
-              {/* Show Options tab only for role_id=1 (Admin) */}
+              <TabsTrigger value="qr-codes" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                <QrCode className="h-3 w-3" />
+                QR Codes
+              </TabsTrigger>
+              {/* Show Whatsapp Settings tab only for role_id=1 (Admin) */}
               {currentUser?.role_id === 1 && (
-                <TabsTrigger value="options" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
-                  <Sliders className="h-3 w-3" />
-                  Options
+                <TabsTrigger value="notification-settings" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                  <MessageCircle className="h-3 w-3" />
+                  Whatsapp
+                </TabsTrigger>
+              )}
+              {/* Show SMS Settings tab only for role_id=1 (Admin) */}
+              {currentUser?.role_id === 1 && (
+                <TabsTrigger value="sms-settings" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                  <MessageCircle className="h-3 w-3" />
+                  SMS
+                </TabsTrigger>
+              )}
+              {/* Show Telegram Settings tab only for role_id=1 (Admin) */}
+              {currentUser?.role_id === 1 && (
+                <TabsTrigger value="telegram-notifications" className="min-w-fit px-3 py-2 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 data-[state=active]:shadow-sm flex items-center gap-1 text-xs">
+                  <Send className="h-3 w-3" />
+                  Telegram
                 </TabsTrigger>
               )}
             </TabsList>
 
             <div className="flex-1">{/* Content wrapper */}
             
-
-
-            <TabsContent value="accessories" className="mt-1.5">
+            <TabsContent value="users" className="mt-1.5">
               <div className="space-y-4">
                 <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900" style={{fontSize: "22px"}}>Accessories Management</h3>
-                  <p className="text-sm text-gray-500 mt-1">Manage accessories details in your system. Create, edit, or delete accessories for organizing purpose.</p>
+                  <h3 className="text-xl font-semibold text-gray-900">User Settings</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage system users, their roles and permissions</p>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs sm:text-sm text-gray-600">Rows per page:</span>
+                      <Select value={perPage} onValueChange={(value) => { setPerPage(value); setCurrentPage(1); }}>
+                        <SelectTrigger className="w-[60px] sm:w-[70px] h-7 sm:h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {currentUser?.role_id === 1 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs sm:text-sm text-gray-600">Branch:</span>
+                        <Select value={selectedBranchFilter || 'all'} onValueChange={(value) => { setSelectedBranchFilter(value === 'all' ? '' : value); setCurrentPage(1); }}>
+                          <SelectTrigger className="w-[120px] sm:w-[150px] h-7 sm:h-8">
+                            <SelectValue placeholder="All Branches" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Branches</SelectItem>
+                            {branches.map((branch) => (
+                              <SelectItem key={branch.id} value={branch.id.toString()}>
+                                {branch.branch_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search users..."
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        className="pl-8 sm:pl-9 pr-3 h-8 sm:h-9 w-full sm:w-[300px] text-sm"
+                      />
+                    </div>
+                    <Button 
+                      className="bg-black hover:bg-gray-800 text-white text-xs sm:text-sm h-8 sm:h-9 w-full sm:w-auto" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAdd();
+                      }}
+                      type="button"
+                    >
+                      <Plus className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
+                      Add User
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-[#e4e4e4] rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 border-b border-[#e4e4e4]">
+                        <TableHead className="font-semibold text-gray-700 py-3">Sl No</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Name</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Email</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Department</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Designation</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Branch</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Role</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Created At</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3 text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="h-24 text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : error ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="h-24 text-center">
+                            <div className="text-destructive">Error: {error}</div>
+                          </TableCell>
+                        </TableRow>
+                      ) : users.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="h-24 text-center">
+                            No users found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        users.map((user, index) => (
+                          <TableRow key={user.id} className="hover:bg-gray-50 border-b border-[#e4e4e4] last:border-b-0">
+                            <TableCell className="py-3">{((currentPage - 1) * parseInt(perPage)) + index + 1}</TableCell>
+                            <TableCell className="py-3">{user.name}</TableCell>
+                            <TableCell className="py-3">{user.email}</TableCell>
+                            <TableCell className="py-3">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {user.department?.department_name || '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {user.designation?.designation_name || '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {user.branch?.branch_name || '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  (user.role_id || user.role) === 1 ? 'bg-purple-100 text-purple-800' :
+                                  (user.role_id || user.role) === 3 ? 'bg-blue-100 text-blue-800' :
+                                  (user.role_id || user.role) === 4 ? 'bg-orange-100 text-orange-800' :
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  {getRoleName(user.role_id || user.role)}
+                                </span>
+                                {(user.role_id || user.role) === 3 && (
+                                  <>
+                                    <button
+                                      className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 transition-colors cursor-pointer"
+                                      onClick={() => handleViewAssignedAgents(user)}
+                                      title="View Assigned Agents"
+                                    >
+                                      {user.assigned_agents_count || 0}
+                                    </button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => handleAssignAgents(user)}
+                                      title="Assign Agents"
+                                    >
+                                      <UserPlus className="h-4 w-4 text-blue-600" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                user.status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {getStatusName(user.status)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center justify-center space-x-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleEdit(user)}
+                                  title="Edit User"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleChangePassword(user)}
+                                  title="Change Password"
+                                >
+                                  <Lock className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleDelete(user)}
+                                  title="Delete User"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center text-destructive p-6">Error: {error}</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500 p-6">No users found.</div>
+                  ) : (
+                    users.map((user, index) => (
+                      <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-500">#{((currentPage - 1) * parseInt(perPage)) + index + 1}</span>
+                              <h4 className="font-semibold text-gray-900">{user.name}</h4>
+                            </div>
+                            <p className="text-sm text-gray-600">{user.email}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            user.status === 1 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {user.status === 1 ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-500">Department:</span>
+                            <p className="font-medium">{user.department?.department_name || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Designation:</span>
+                            <p className="font-medium">{user.designation?.designation_name || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Branch:</span>
+                            <p className="font-medium">{user.branch?.branch_name || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Role:</span>
+                            <p className="font-medium">
+                              {getRoleName(user.role_id || user.role)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Created:</span>
+                            <p className="font-medium">
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleEdit(user)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleChangePassword(user)}
+                          >
+                            <Lock className="h-3 w-3 mr-1" />
+                            Password
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(user)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                    Showing {users.length === 0 ? 0 : ((currentPage - 1) * parseInt(perPage)) + 1} to{' '}
+                    {Math.min(currentPage * parseInt(perPage), totalItems)} of {totalItems} entries
+                  </div>
+                  <div className="flex items-center justify-center sm:justify-end space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="text-xs sm:text-sm"
+                    >
+                      Previous
+                    </Button>
+                    <div className="hidden sm:flex items-center gap-1">
+                      {(() => {
+                        const pages = [];
+                        const maxVisiblePages = 5;
+                        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+                        if (endPage - startPage < maxVisiblePages - 1) {
+                          startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                        }
+
+                        // First page
+                        if (startPage > 1) {
+                          pages.push(
+                            <Button
+                              key={1}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(1)}
+                              disabled={loading}
+                              className="w-9 h-9 p-0"
+                            >
+                              1
+                            </Button>
+                          );
+                          if (startPage > 2) {
+                            pages.push(<span key="start-ellipsis" className="px-2">...</span>);
+                          }
+                        }
+
+                        // Page numbers
+                        for (let i = startPage; i <= endPage; i++) {
+                          pages.push(
+                            <Button
+                              key={i}
+                              variant={i === currentPage ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(i)}
+                              disabled={loading}
+                              className={`w-9 h-9 p-0 ${i === currentPage ? 'bg-blue-600 text-white hover:bg-blue-700' : ''}`}
+                            >
+                              {i}
+                            </Button>
+                          );
+                        }
+
+                        // Last page
+                        if (endPage < totalPages) {
+                          if (endPage < totalPages - 1) {
+                            pages.push(<span key="end-ellipsis" className="px-2">...</span>);
+                          }
+                          pages.push(
+                            <Button
+                              key={totalPages}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(totalPages)}
+                              disabled={loading}
+                              className="w-9 h-9 p-0"
+                            >
+                              {totalPages}
+                            </Button>
+                          );
+                        }
+
+                        return pages;
+                      })()}
+                    </div>
+                    <div className="flex sm:hidden items-center px-3 text-xs">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="text-xs sm:text-sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="company-logo" className="mt-1.5">
+              <div className="space-y-4">
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900" style={{fontSize: '14px'}}>Logo & Favicon Management</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage your company logos and favicons. You can have one active logo and one active favicon simultaneously.</p>
                 </div>
                 
                 {/* Two-column layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   
-                  {/* Left Column - Add Accessory Form (25% width) */}
+                  {/* Left Column - Add Logo Form (25% width) */}
                   <div className="lg:col-span-1">
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="accessory-name" className="text-sm font-medium">Accessory Name</Label>
+                        <Label htmlFor="logo-name" className="text-sm font-medium">Logo Name</Label>
                         <Input
-                          id="accessory-name"
+                          id="logo-name"
                           type="text"
-                          placeholder="Enter accessory name"
-                          value={accessoryFormData.name}
-                          onChange={(e) => handleAccessoryFormChange("name", e.target.value)}
+                          placeholder="Enter logo name (optional)"
+                          value={logoFormData.name}
+                          onChange={(e) => handleLogoFormChange('name', e.target.value)}
                           className="mt-1"
                         />
                       </div>
-
-                      <Button
-                        onClick={handleAddAccessory}
-                        disabled={savingAccessory || !accessoryFormData.name.trim()}
-                        className="w-full bg-gray-800 hover:bg-gray-900"
-                      >
-                        {savingAccessory ? "Adding..." : "Add Accessory"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Right Column - Accessories Table (75% width) */}
-                  <div className="lg:col-span-3">
-                    {/* Controls */}
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Rows per page:</span>
+                      
+                      <div>
+                        <Label htmlFor="logo-type" className="text-sm font-medium">Type</Label>
                         <Select
-                          value={perPageAccessories.toString()}
-                          onValueChange={(value) => {
-                            setPerPageAccessories(Number(value));
-                            setCurrentPageAccessories(1);
-                          }}
+                          value={logoFormData.type}
+                          onValueChange={(value: 'Logo' | 'Favicon') => handleLogoFormChange('type', value)}
                         >
-                          <SelectTrigger className="w-20">
-                            <SelectValue />
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="20">20</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="Logo">Logo</SelectItem>
+                            <SelectItem value="Favicon">Favicon</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Search className="h-4 w-4 text-gray-400" />
-                        </div>
+                      <div>
+                        <Label htmlFor="logo-file" className="text-sm font-medium">Logo Image</Label>
                         <Input
-                          type="text"
-                          placeholder="Search accessories..."
-                          className="pl-10 w-72"
-                          value={searchTermAccessories}
-                          onChange={(e) => setSearchTermAccessories(e.target.value)}
+                          id="logo-file"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            handleLogoFormChange('logo_image', file || null);
+                          }}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Max size: 2MB. Formats: JPG, PNG, GIF, SVG</p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="logo-active"
+                          checked={logoFormData.is_active}
+                          onCheckedChange={(checked) => handleLogoFormChange('is_active', checked)}
+                        />
+                        <Label htmlFor="logo-active" className="text-sm">Set as Active Logo</Label>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Note: Only one logo of each type can be active at a time. Setting this as active will deactivate all other logos of the same type.</p>
+
+                      <Button
+                        onClick={handleAddLogo}
+                        disabled={savingLogo || !logoFormData.logo_image}
+                        className="w-full bg-gray-800 hover:bg-gray-900"
+                      >
+                        {savingLogo ? 'Adding...' : 'Add Logo'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Logos Table (75% width) */}
+                  <div className="lg:col-span-3">
+                    {/* Controls */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs sm:text-sm text-gray-600">Rows per page:</span>
+                        <Select value={perPageLogos.toString()} onValueChange={(value) => {
+                          setPerPageLogos(parseInt(value));
+                          setCurrentPageLogos(1);
+                        }}>
+                          <SelectTrigger className="w-[60px] sm:w-[70px] h-7 sm:h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search logos..."
+                          value={searchTermLogos}
+                          onChange={(e) => setSearchTermLogos(e.target.value)}
+                          className="pl-8 sm:pl-9 pr-3 py-1.5 sm:py-2 h-7 sm:h-8 w-full sm:w-64 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
 
                     {/* Table */}
-                    {loadingAccessories ? (
-                      <div className="h-48 flex items-center justify-center">
-                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                      </div>
-                    ) : errorAccessories ? (
-                      <div className="h-48 flex items-center justify-center">
-                        <div className="text-center">
-                          <p className="text-red-500 mb-2">{errorAccessories}</p>
-                          <Button onClick={fetchAccessories} variant="outline">
-                            Try Again
-                          </Button>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      {loadingLogos ? (
+                        <div className="text-center py-8">
+                          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-purple-600 border-r-transparent"></div>
+                          <span className="ml-2 text-sm text-gray-600">Loading logos...</span>
                         </div>
-                      </div>
-                    ) : (
-                      <div style={{border: "1px solid #e4e4e4", borderRadius: "6px", overflow: "hidden"}}>
+                      ) : errorLogos ? (
+                        <div className="text-center py-8">
+                          <p className="text-red-500 text-sm">{errorLogos}</p>
+                        </div>
+                      ) : (
                         <Table>
                           <TableHeader className="bg-gray-50">
-                            <TableRow style={{borderBottom: "1px solid #e4e4e4"}}>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: "14px"}}>S.No</TableHead>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: "14px"}}>Accessory Name</TableHead>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: "14px"}}>Created By</TableHead>
-                              <TableHead className="font-medium text-gray-600 px-4 py-3 text-right" style={{fontSize: "14px"}}>Actions</TableHead>
+                            <TableRow>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: '14px'}}>S.No</TableHead>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: '14px'}}>Logo/Favicon</TableHead>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: '14px'}}>Name</TableHead>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: '14px'}}>Type</TableHead>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: '14px'}}>Status</TableHead>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3" style={{fontSize: '14px'}}>Created By</TableHead>
+                              <TableHead className="font-medium text-gray-600 px-4 py-3 text-right" style={{fontSize: '14px'}}>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {accessories.length === 0 ? (
-                              <TableRow style={{borderBottom: "1px solid #e4e4e4"}}>
-                                <TableCell colSpan={4} className="text-center py-8 text-gray-500" style={{fontSize: "14px"}}>
-                                  No accessories found
+                            {companyLogos.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center py-8 text-gray-500" style={{fontSize: '14px'}}>
+                                  No company logos found
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              accessories.map((accessory, index) => (
-                                <TableRow key={accessory.id} className="hover:bg-gray-50" style={{borderBottom: "1px solid #e4e4e4"}}>
-                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: "14px"}}>
-                                    {((currentPageAccessories - 1) * perPageAccessories) + index + 1}
+                              companyLogos.map((logo, index) => (
+                                <TableRow key={logo.id} className="hover:bg-gray-50">
+                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: '14px'}}>
+                                    {((currentPageLogos - 1) * perPageLogos) + index + 1}
                                   </TableCell>
-                                  <TableCell className="px-4 py-3 text-gray-900" style={{fontSize: "14px"}}>
-                                    {accessory.name}
+                                  <TableCell className="px-4 py-3">
+                                    {logo.logo_image ? (
+                                      <img 
+                                        src={`/${logo.logo_image}`} 
+                                        alt={logo.name || 'Company Logo'} 
+                                        className="w-[150px] h-auto max-h-16 object-contain rounded"
+                                        style={{ width: '150px' }}
+                                      />
+                                    ) : (
+                                      <div className="w-[150px] h-16 bg-gray-200 rounded flex items-center justify-center" style={{ width: '150px' }}>
+                                        <Building2 className="h-8 w-8 text-gray-400" />
+                                      </div>
+                                    )}
                                   </TableCell>
-                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: "14px"}}>
-                                    {accessory.creator?.name || "-"}
+                                  <TableCell className="px-4 py-3 text-gray-900" style={{fontSize: '14px'}}>
+                                    {logo.name || '-'}
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: '14px'}}>
+                                    <span className={`inline-flex px-2 py-1 rounded-full ${
+                                      logo.type === 'Favicon' 
+                                        ? 'bg-purple-100 text-purple-800' 
+                                        : 'bg-blue-100 text-blue-800'
+                                    }`} style={{fontSize: '14px'}}>
+                                      {logo.type || 'Logo'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3" style={{fontSize: '14px'}}>
+                                    <span className={`inline-flex px-2 py-1 rounded-full ${
+                                      logo.is_active 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`} style={{fontSize: '14px'}}>
+                                      {logo.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="px-4 py-3 text-gray-600" style={{fontSize: '14px'}}>
+                                    {logo.creator?.name || '-'}
                                   </TableCell>
                                   <TableCell className="px-4 py-3 text-right">
                                     <div className="flex items-center justify-end space-x-2">
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => handleEditAccessory(accessory)}
+                                        onClick={() => handleEditLogo(logo)}
                                         className="h-7 w-7 p-0"
                                       >
                                         <Edit className="h-3 w-3" />
@@ -3648,7 +3893,7 @@ export default function Settings() {
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => handleDeleteAccessory(accessory)}
+                                        onClick={() => handleDeleteLogo(logo)}
                                         className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
                                       >
                                         <Trash2 className="h-3 w-3" />
@@ -3660,67 +3905,48 @@ export default function Settings() {
                             )}
                           </TableBody>
                         </Table>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* Pagination */}
-                    {accessories.length > 0 && (
-                      <div className="flex items-center justify-between pt-4">
+                    {totalPagesLogos > 1 && (
+                      <div className="flex items-center justify-between mt-4">
                         <div className="text-sm text-gray-600">
-                          Showing {((currentPageAccessories - 1) * perPageAccessories) + 1} to {Math.min(currentPageAccessories * perPageAccessories, totalAccessories)} of {totalAccessories} entries
+                          Page {currentPageLogos} of {totalPagesLogos} ({totalLogos} total)
                         </div>
-                        
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-2">
                           <Button
-                            variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPageAccessories(1)}
-                            disabled={currentPageAccessories === 1}
+                            variant="outline"
+                            onClick={() => setCurrentPageLogos(1)}
+                            disabled={currentPageLogos === 1}
                             className="h-8 w-8 p-0"
                           >
                             <ChevronsLeft className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPageAccessories(Math.max(1, currentPageAccessories - 1))}
-                            disabled={currentPageAccessories === 1}
+                            variant="outline"
+                            onClick={() => setCurrentPageLogos(currentPageLogos - 1)}
+                            disabled={currentPageLogos === 1}
                             className="h-8 w-8 p-0"
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
-                          
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: Math.min(5, totalPagesAccessories) }, (_, i) => {
-                              const page = i + 1;
-                              return (
-                                <Button
-                                  key={page}
-                                  variant={currentPageAccessories === page ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => setCurrentPageAccessories(page)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  {page}
-                                </Button>
-                              );
-                            })}
-                          </div>
-                          
                           <Button
-                            variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPageAccessories(Math.min(totalPagesAccessories, currentPageAccessories + 1))}
-                            disabled={currentPageAccessories === totalPagesAccessories}
+                            variant="outline"
+                            onClick={() => setCurrentPageLogos(currentPageLogos + 1)}
+                            disabled={currentPageLogos === totalPagesLogos}
                             className="h-8 w-8 p-0"
                           >
                             <ChevronRight className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPageAccessories(totalPagesAccessories)}
-                            disabled={currentPageAccessories === totalPagesAccessories}
+                            variant="outline"
+                            onClick={() => setCurrentPageLogos(totalPagesLogos)}
+                            disabled={currentPageLogos === totalPagesLogos}
                             className="h-8 w-8 p-0"
                           >
                             <ChevronsRight className="h-4 w-4" />
@@ -5826,72 +6052,1063 @@ export default function Settings() {
               </div>
             </TabsContent>
 
-            <TabsContent value="options" className="mt-1.5">
-              <div className="space-y-4">
+            {/* QR Codes Tab */}
+            <TabsContent value="qr-codes" className="mt-1.5">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Options</h3>
-                  <p className="text-sm text-gray-500 mt-1">Configure additional options and settings</p>
+                  <h3 className="text-xl font-semibold text-gray-900">QR Code Management</h3>
+                  <p className="text-sm text-gray-500 mt-1">Generate and manage QR codes for quick access to resources</p>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                {/* GST Rate Card */}
-                <div className="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900">GST Rate</h4>
-                    <p className="text-sm text-gray-500 mt-1">Manage the default GST percentage for invoices</p>
-                  </div>
+                {/* Generate QR Code Section */}
+                <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+                  <h3 className="text-base sm:text-lg font-semibold mb-4">Generate QR Code</h3>
 
-                  {loadingGst ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="h-6 w-6 animate-spin text-purple-600" />
+                  {/* All controls in single line */}
+                  <div className="flex flex-col lg:flex-row gap-3">
+                    {/* Branch Selection */}
+                    <div className="lg:w-[250px]">
+                      <Label htmlFor="qr-branch" className="text-xs sm:text-sm mb-1 block font-medium">Select Branch</Label>
+                      <Select value={selectedQRBranch} onValueChange={setSelectedQRBranch}>
+                        <SelectTrigger className="w-full h-10">
+                          <SelectValue placeholder="Select a branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allBranchesForDropdown.map((branch) => (
+                            <SelectItem key={branch.id} value={branch.id.toString()}>
+                              {branch.branch_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0">
-                        <Label htmlFor="gst-rate" className="text-base font-medium text-gray-900">
-                          GST Percentage (%)
-                        </Label>
-                      </div>
-                      <div className="w-32">
-                        <Input
-                          id="gst-rate"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={tempGstRate}
-                          onChange={(e) => setTempGstRate(e.target.value)}
-                          placeholder="Enter GST"
-                        />
-                      </div>
+
+                    {/* Link Input */}
+                    <div className="flex-1">
+                      <Label htmlFor="qr-link" className="text-xs sm:text-sm mb-1 block font-medium">
+                        Enter Link
+                      </Label>
+                      <Input
+                        id="qr-link"
+                        placeholder="Link will appear here after branch selection"
+                        value={qrcodeLink}
+                        onChange={(e) => setQrcodeLink(e.target.value)}
+                        className="w-full text-sm h-10"
+                        disabled={!selectedQRBranch}
+                      />
+                    </div>
+
+                    {/* Generate Button */}
+                    <div className="flex items-end">
                       <Button
-                        onClick={handleUpdateGst}
-                        disabled={savingGst}
+                        onClick={handleGenerateQRCode}
+                        disabled={generatingQRCode || !selectedQRBranch}
+                        className="text-sm h-10 px-4 sm:px-6"
                       >
-                        {savingGst ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
+                        {generatingQRCode ? (
+                          <>Generating...</>
                         ) : (
-                          'Update GST'
+                          <>
+                            <QrCode className="h-4 w-4 mr-2" />
+                            Generate QR Code
+                          </>
                         )}
                       </Button>
                     </div>
+                  </div>
+
+                  {/* Link Preview */}
+                  {selectedQRBranch && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-600">
+                        Preview: <span className="font-medium text-blue-600">{window.location.origin}/register?branch_id={selectedQRBranch}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* QR Codes List */}
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 className="text-base sm:text-lg font-semibold">Generated QR Codes</h3>
+                  </div>
+                  
+                  {loadingQRCodes ? (
+                    <div className="p-8 text-center">
+                      <div className="inline-flex items-center text-gray-500 text-sm">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading QR codes...
+                      </div>
+                    </div>
+                  ) : qrcodes.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <QrCode className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                      <p className="text-gray-500 text-sm">No QR codes generated yet</p>
+                      <p className="text-gray-400 text-xs mt-1">Generate your first QR code above</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mobile View - Enhanced Cards */}
+                      <div className="block md:hidden divide-y divide-gray-200">
+                        {qrcodes.map((qrcode) => (
+                          <div key={qrcode.id} className="p-4 hover:bg-gray-50 transition-colors">
+                            <div className="space-y-3">
+                              {/* Header with QR Code and Link */}
+                              <div className="flex items-start gap-3">
+                                {/* QR Code Image - Clickable */}
+                                <div className="flex-shrink-0">
+                                  <a
+                                    href={`/${qrcode.qrcode_file}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block h-20 w-20 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg shadow-sm p-2 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                                  >
+                                    <img
+                                      src={`/${qrcode.qrcode_file}`}
+                                      alt="QR Code"
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </a>
+                                </div>
+                                
+                                {/* QR Code Details */}
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  <div className="bg-gray-50 px-3 py-2 rounded-lg">
+                                    <p className="text-xs text-gray-500 mb-1">Link:</p>
+                                    <a
+                                      href={qrcode.web_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 break-all"
+                                    >
+                                      <span className="line-clamp-2">{qrcode.web_link}</span>
+                                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                    </a>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                      </svg>
+                                      {qrcode.creator?.name || 'System'}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      {new Date(qrcode.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Action Buttons - Mobile Grid */}
+                              <div className="grid grid-cols-4 gap-2">
+                                <a
+                                  href={`/${qrcode.qrcode_file}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex flex-col items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                                >
+                                  <Eye className="h-4 w-4 mb-1" />
+                                  <span className="text-xs">View</span>
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(qrcode.web_link);
+                                    toast.success('Link copied!');
+                                  }}
+                                  className="flex flex-col items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 transition-colors"
+                                >
+                                  <Copy className="h-4 w-4 mb-1" />
+                                  <span className="text-xs">Copy</span>
+                                </button>
+                                <a
+                                  href={`/${qrcode.qrcode_file}`}
+                                  download
+                                  className="flex flex-col items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-colors"
+                                >
+                                  <Download className="h-4 w-4 mb-1" />
+                                  <span className="text-xs">Save</span>
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    setDeletingQRCode(qrcode);
+                                    setDeleteQRCodeModalOpen(true);
+                                  }}
+                                  className="flex flex-col items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4 mb-1" />
+                                  <span className="text-xs">Delete</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop View - Enhanced Table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                QR Code
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                                Link
+                              </th>
+                              <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Created By
+                              </th>
+                              <th className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {qrcodes.map((qrcode) => (
+                              <tr key={qrcode.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="relative group">
+                                    <a
+                                      href={`/${qrcode.qrcode_file}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block h-20 w-20 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg shadow-md p-2 transition-all duration-200 hover:scale-110 hover:shadow-lg border border-gray-200 cursor-pointer"
+                                    >
+                                      <img
+                                        src={`/${qrcode.qrcode_file}`}
+                                        alt="QR Code"
+                                        className="h-full w-full object-contain"
+                                      />
+                                    </a>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <a
+                                    href={qrcode.web_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center gap-1 max-w-xs truncate group"
+                                  >
+                                    <span className="truncate">{qrcode.web_link}</span>
+                                    <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </a>
+                                </td>
+                                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  <div className="flex items-center">
+                                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 mr-2">
+                                      {(qrcode.creator?.name || 'S')[0].toUpperCase()}
+                                    </div>
+                                    <span>{qrcode.creator?.name || 'System'}</span>
+                                  </div>
+                                </td>
+                                <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  <div className="flex flex-col">
+                                    <span>{new Date(qrcode.created_at).toLocaleDateString()}</span>
+                                    <span className="text-xs text-gray-400">{new Date(qrcode.created_at).toLocaleTimeString()}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {/* View Button */}
+                                    <a
+                                      href={`/${qrcode.qrcode_file}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="group relative inline-flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
+                                      title="View QR Code"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                        View
+                                      </span>
+                                    </a>
+                                    
+                                    {/* Copy Link Button */}
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(qrcode.web_link);
+                                        toast.success('Link copied to clipboard!');
+                                      }}
+                                      className="group relative inline-flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 transition-all duration-200"
+                                      title="Copy Link"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                        Copy
+                                      </span>
+                                    </button>
+                                    
+                                    {/* Download Button */}
+                                    <a
+                                      href={`/${qrcode.qrcode_file}`}
+                                      download
+                                      className="group relative inline-flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all duration-200"
+                                      title="Download QR Code"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                        Download
+                                      </span>
+                                    </a>
+                                    
+                                    {/* Delete Button */}
+                                    <button
+                                      onClick={() => {
+                                        setDeletingQRCode(qrcode);
+                                        setDeleteQRCodeModalOpen(true);
+                                      }}
+                                      className="group relative inline-flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200"
+                                      title="Delete QR Code"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                        Delete
+                                      </span>
+                                    </button>
+                                  </div>
+                                </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    </>
                   )}
                 </div>
               </div>
             </TabsContent>
 
-            {/* QR Codes Tab */}
+            <TabsContent value="notification-settings" className="mt-1.5">
+              <div className="space-y-4">
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Whatsapp Settings</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage your WhatsApp messaging templates and API configurations</p>
+                </div>
 
+                {/* Filters and Search */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div className="relative flex-1 sm:flex-initial">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search WhatsApp settings..."
+                        value={searchTermMessages}
+                        onChange={(e) => { setSearchTermMessages(e.target.value); setCurrentPageMessages(1); }}
+                        className="pl-8 sm:pl-9 pr-3 h-8 sm:h-9 w-full sm:w-[250px] text-sm"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    className="bg-black hover:bg-gray-800 text-white text-xs sm:text-sm h-8 sm:h-9"
+                    onClick={() => {
+                      setEditingMessage(null);
+                      setMessageFormData({
+                        vendor_name: '',
+                        whatsapp_api: '',
+                        api_token: '',
+                        phone_number_id: '',
+                        status: true,
+                      });
+                      setMessageModalOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
+                    Add Settings
+                  </Button>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-[#e4e4e4] rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 border-b border-[#e4e4e4]">
+                        <TableHead className="font-semibold text-gray-700 py-3">Sl No</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Vendor Name</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">WhatsApp API</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">API Token</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Phone Number ID</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3 text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loadingMessages ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : messageSettings.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center">
+                            No WhatsApp settings found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        messageSettings
+                          .filter((message) => {
+                            if (!searchTermMessages) return true;
+                            const searchLower = searchTermMessages.toLowerCase();
+                            return (
+                              message.vendor_name?.toLowerCase().includes(searchLower) ||
+                              message.whatsapp_api?.toLowerCase().includes(searchLower) ||
+                              message.api_token?.toLowerCase().includes(searchLower)
+                            );
+                          })
+                          .map((message, index) => (
+                          <TableRow key={message.id} className="hover:bg-gray-50 border-b border-[#e4e4e4] last:border-b-0">
+                            <TableCell className="py-3">
+                              <span className="font-medium text-gray-700">
+                                {((currentPageMessages - 1) * perPageMessages) + index + 1}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4 text-gray-400" />
+                                <span className="font-medium">
+                                  {message.vendor_name || '-'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {message.whatsapp_api ? (
+                                <span className="text-sm truncate max-w-[200px] block" title={message.whatsapp_api}>
+                                  {message.whatsapp_api}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {message.masked_token || message.api_token ? (
+                                <span className="text-sm truncate max-w-[200px] block" title={message.masked_token || message.api_token}>
+                                  {message.masked_token || message.api_token}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {message.phone_number_id ? (
+                                <span className="text-sm font-mono truncate max-w-[150px] block" title={message.phone_number_id}>
+                                  {message.phone_number_id}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <span
+                                onClick={() => handleToggleStatus(message)}
+                                className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
+                                  message.status
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                }`}
+                                title="Click to toggle status"
+                              >
+                                {message.status ? 'Active' : 'Inactive'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center justify-center space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingMessage(message);
+                                    setMessageFormData({
+                                      vendor_name: message.vendor_name || '',
+                                      whatsapp_api: message.whatsapp_api || '',
+                                      api_token: '',
+                                      phone_number_id: message.phone_number_id || '',
+                                      status: message.status,
+                                    });
+                                    setMessageModalOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setDeletingMessage(message);
+                                    setDeleteMessageModalOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3">
+                  {loadingMessages ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                    </div>
+                  ) : messageSettings.length === 0 ? (
+                    <div className="text-center text-gray-500 p-6">No WhatsApp settings found.</div>
+                  ) : (
+                    messageSettings
+                      .filter((message) => {
+                        if (!searchTermMessages) return true;
+                        const searchLower = searchTermMessages.toLowerCase();
+                        return (
+                          message.vendor_name?.toLowerCase().includes(searchLower) ||
+                          message.whatsapp_api?.toLowerCase().includes(searchLower) ||
+                          message.api_token?.toLowerCase().includes(searchLower)
+                        );
+                      })
+                      .map((message, index) => (
+                      <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded">
+                                #{((currentPageMessages - 1) * perPageMessages) + index + 1}
+                              </span>
+                              <MessageCircle className="h-4 w-4 text-gray-400" />
+                              <h4 className="font-semibold text-gray-900">
+                                {message.vendor_name || 'No Vendor Name'}
+                              </h4>
+                            </div>
+                            {message.whatsapp_api && (
+                              <p className="text-sm text-gray-600 break-all">{message.whatsapp_api}</p>
+                            )}
+                            {(message.masked_token || message.api_token) && (
+                              <p className="text-xs font-mono text-gray-500">
+                                Token: {message.masked_token || '••••••••'}
+                              </p>
+                            )}
+                          </div>
+                          <span
+                            onClick={() => handleToggleStatus(message)}
+                            className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
+                              message.status
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            }`}
+                            title="Click to toggle status"
+                          >
+                            {message.status ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingMessage(message);
+                              setMessageFormData({
+                                vendor_name: message.vendor_name || '',
+                                whatsapp_api: message.whatsapp_api || '',
+                                api_token: '',
+                                phone_number_id: message.phone_number_id || '',
+                                status: message.status,
+                              });
+                              setMessageModalOpen(true);
+                            }}
+                            className="flex-1"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDeletingMessage(message);
+                              setDeleteMessageModalOpen(true);
+                            }}
+                            className="flex-1 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Pagination */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                    Showing {messageSettings.length === 0 ? 0 : ((currentPageMessages - 1) * perPageMessages) + 1} to{' '}
+                    {Math.min(currentPageMessages * perPageMessages, messageSettings.length)} of {messageSettings.length} entries
+                  </div>
+                  <div className="flex items-center justify-center sm:justify-end space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageMessages(Math.max(1, currentPageMessages - 1))}
+                      disabled={currentPageMessages === 1}
+                      className="text-xs sm:text-sm"
+                    >
+                      Previous
+                    </Button>
+                    <div className="hidden sm:flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, totalPagesMessages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPagesMessages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPageMessages <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPageMessages >= totalPagesMessages - 2) {
+                          pageNum = totalPagesMessages - 4 + i;
+                        } else {
+                          pageNum = currentPageMessages - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={i}
+                            variant={pageNum === currentPageMessages ? "default" : "outline"}
+                            size="sm"
+                            className={`h-8 w-8 ${pageNum === currentPageMessages ? 'bg-black text-white hover:bg-gray-800' : ''}`}
+                            onClick={() => setCurrentPageMessages(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex sm:hidden items-center px-3 text-xs">
+                      Page {currentPageMessages} of {totalPagesMessages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageMessages(Math.min(totalPagesMessages, currentPageMessages + 1))}
+                      disabled={currentPageMessages === totalPagesMessages}
+                      className="text-xs sm:text-sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
 
             {/* Telegram Notifications Tab Content */}
+            <TabsContent value="telegram-notifications" className="mt-1.5">
+              <div className="space-y-4">
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Telegram Notifications</h3>
+                  <p className="text-sm text-gray-500 mt-1">Configure which events trigger Telegram notifications</p>
+                </div>
+
+                {/* Telegram Notification Settings Card */}
+                <div className="border border-[#e4e4e4] rounded-lg overflow-hidden">
+                  {/* Header */}
+                  <div className="bg-blue-50 px-5 py-4 flex items-center gap-3 border-b border-[#e4e4e4]">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Send className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Telegram Notifications</h4>
+                      <p className="text-sm text-gray-500">Configure which events trigger Telegram notifications</p>
+                    </div>
+                  </div>
+
+                  {/* Settings List */}
+                  <div className="divide-y divide-[#e4e4e4]">
+                    {loadingTelegramSettings ? (
+                      <div className="p-8 flex items-center justify-center">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+                      </div>
+                    ) : telegramSettings.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        No notification settings found. Settings will be created automatically.
+                      </div>
+                    ) : (
+                      telegramSettings.map((setting) => (
+                        <div
+                          key={setting.id}
+                          className={`px-5 py-4 flex items-center justify-between ${
+                            setting.is_active ? 'bg-orange-50' : 'bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${setting.is_active ? 'bg-orange-100' : 'bg-gray-100'}`}>
+                              {setting.event_type === 'new_ticket' ? (
+                                <Bell className={`h-4 w-4 ${setting.is_active ? 'text-orange-600' : 'text-gray-400'}`} />
+                              ) : (
+                                <RefreshCw className={`h-4 w-4 ${setting.is_active ? 'text-orange-600' : 'text-gray-400'}`} />
+                              )}
+                            </div>
+                            <div>
+                              <h5 className="font-medium text-gray-900">{setting.event_name}</h5>
+                              <p className="text-sm text-gray-500">{setting.description}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleToggleTelegramSetting(setting.id)}
+                            disabled={togglingTelegramSetting === setting.id}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              setting.is_active ? 'bg-blue-600' : 'bg-gray-300'
+                            } ${togglingTelegramSetting === setting.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                setting.is_active ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Note */}
+                  <div className="bg-gray-50 px-5 py-3 border-t border-[#e4e4e4]">
+                    <p className="text-sm text-gray-500">
+                      <strong>Note:</strong> Make sure Telegram Bot Token and Chat ID are configured in the environment settings for notifications to work properly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
 
             {/* SMS Settings Tab Content */}
+            <TabsContent value="sms-settings" className="mt-1.5">
+              <div className="space-y-4">
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">SMS Settings</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage your SMS API configurations and settings</p>
+                </div>
+
+                {/* Filters and Search */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div className="relative flex-1 sm:flex-initial">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search SMS settings..."
+                        value={searchTermSms}
+                        onChange={(e) => { setSearchTermSms(e.target.value); setCurrentPageSms(1); }}
+                        className="pl-8 sm:pl-9 pr-3 h-8 sm:h-9 w-full sm:w-[250px] text-sm"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    className="bg-black hover:bg-gray-800 text-white text-xs sm:text-sm h-8 sm:h-9"
+                    onClick={() => {
+                      setEditingSms(null);
+                      setSmsFormData({
+                        vendor_name: '',
+                        sms_api: '',
+                        api_token: '',
+                        sender_id: '',
+                        status: true,
+                      });
+                      setSmsModalOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
+                    Add Settings
+                  </Button>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-[#e4e4e4] rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 border-b border-[#e4e4e4]">
+                        <TableHead className="font-semibold text-gray-700 py-3">Sl No</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Vendor Name</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">SMS API</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">API Token</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Sender ID</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-3 text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loadingSms ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : smsSettings.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center">
+                            No SMS settings found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        smsSettings
+                          .filter((sms) => {
+                            if (!searchTermSms) return true;
+                            const searchLower = searchTermSms.toLowerCase();
+                            return (
+                              sms.vendor_name?.toLowerCase().includes(searchLower) ||
+                              sms.sms_api?.toLowerCase().includes(searchLower) ||
+                              sms.sender_id?.toLowerCase().includes(searchLower)
+                            );
+                          })
+                          .map((sms, index) => (
+                          <TableRow key={sms.id} className="hover:bg-gray-50 border-b border-[#e4e4e4] last:border-b-0">
+                            <TableCell className="py-3">
+                              <span className="font-medium text-gray-700">
+                                {((currentPageSms - 1) * perPageSms) + index + 1}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4 text-gray-400" />
+                                <span className="font-medium">
+                                  {sms.vendor_name || '-'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {sms.sms_api ? (
+                                <span className="text-sm truncate max-w-[200px] block" title={sms.sms_api}>
+                                  {sms.sms_api}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {sms.masked_token || sms.api_token ? (
+                                <span className="text-sm truncate max-w-[200px] block" title={sms.masked_token || sms.api_token}>
+                                  {sms.masked_token || sms.api_token}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {sms.sender_id ? (
+                                <span className="text-sm font-mono truncate max-w-[150px] block" title={sms.sender_id}>
+                                  {sms.sender_id}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <span
+                                onClick={() => handleToggleSmsStatus(sms)}
+                                className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
+                                  sms.status
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                }`}
+                                title="Click to toggle status"
+                              >
+                                {sms.status ? 'Active' : 'Inactive'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center justify-center space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingSms(sms);
+                                    setSmsFormData({
+                                      vendor_name: sms.vendor_name || '',
+                                      sms_api: sms.sms_api || '',
+                                      api_token: '',
+                                      sender_id: sms.sender_id || '',
+                                      status: sms.status,
+                                    });
+                                    setSmsModalOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setDeletingSms(sms);
+                                    setDeleteSmsModalOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3">
+                  {loadingSms ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                    </div>
+                  ) : smsSettings.length === 0 ? (
+                    <div className="text-center text-gray-500 p-6">No SMS settings found.</div>
+                  ) : (
+                    smsSettings
+                      .filter((sms) => {
+                        if (!searchTermSms) return true;
+                        const searchLower = searchTermSms.toLowerCase();
+                        return (
+                          sms.vendor_name?.toLowerCase().includes(searchLower) ||
+                          sms.sms_api?.toLowerCase().includes(searchLower) ||
+                          sms.sender_id?.toLowerCase().includes(searchLower)
+                        );
+                      })
+                      .map((sms, index) => (
+                      <div key={sms.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded">
+                                #{((currentPageSms - 1) * perPageSms) + index + 1}
+                              </span>
+                              <MessageCircle className="h-4 w-4 text-gray-400" />
+                              <h4 className="font-semibold text-gray-900">
+                                {sms.vendor_name || 'No Vendor Name'}
+                              </h4>
+                            </div>
+                            {sms.sms_api && (
+                              <p className="text-sm text-gray-600 break-all">{sms.sms_api}</p>
+                            )}
+                            {(sms.masked_token || sms.api_token) && (
+                              <p className="text-xs font-mono text-gray-500">
+                                Token: {sms.masked_token || '••••••••'}
+                              </p>
+                            )}
+                            {sms.sender_id && (
+                              <p className="text-xs text-gray-500">
+                                Sender ID: {sms.sender_id}
+                              </p>
+                            )}
+                          </div>
+                          <span
+                            onClick={() => handleToggleSmsStatus(sms)}
+                            className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
+                              sms.status
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            }`}
+                            title="Click to toggle status"
+                          >
+                            {sms.status ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingSms(sms);
+                              setSmsFormData({
+                                vendor_name: sms.vendor_name || '',
+                                sms_api: sms.sms_api || '',
+                                api_token: '',
+                                sender_id: sms.sender_id || '',
+                                status: sms.status,
+                              });
+                              setSmsModalOpen(true);
+                            }}
+                            className="flex-1"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDeletingSms(sms);
+                              setDeleteSmsModalOpen(true);
+                            }}
+                            className="flex-1 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Pagination */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                    Showing {smsSettings.length === 0 ? 0 : ((currentPageSms - 1) * perPageSms) + 1} to{' '}
+                    {Math.min(currentPageSms * perPageSms, smsSettings.length)} of {smsSettings.length} entries
+                  </div>
+                  <div className="flex items-center justify-center sm:justify-end space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageSms(Math.max(1, currentPageSms - 1))}
+                      disabled={currentPageSms === 1}
+                      className="text-xs sm:text-sm"
+                    >
+                      Previous
+                    </Button>
+                    <div className="hidden sm:flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, totalPagesSms) }, (_, i) => {
+                        let pageNum;
+                        if (totalPagesSms <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPageSms <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPageSms >= totalPagesSms - 2) {
+                          pageNum = totalPagesSms - 4 + i;
+                        } else {
+                          pageNum = currentPageSms - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={i}
+                            variant={pageNum === currentPageSms ? "default" : "outline"}
+                            size="sm"
+                            className={`h-8 w-8 ${pageNum === currentPageSms ? 'bg-black text-white hover:bg-gray-800' : ''}`}
+                            onClick={() => setCurrentPageSms(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex sm:hidden items-center px-3 text-xs">
+                      Page {currentPageSms} of {totalPagesSms}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageSms(Math.min(totalPagesSms, currentPageSms + 1))}
+                      disabled={currentPageSms === totalPagesSms}
+                      className="text-xs sm:text-sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
             </div>{/* End of content wrapper */}
           </Tabs>
-          )}
         </div>
 
         {/* User Modal (Add/Edit) */}
@@ -7532,57 +8749,6 @@ export default function Settings() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 {savingLogo ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Edit Accessory Modal */}
-        <Dialog open={editAccessoryModalOpen} onOpenChange={setEditAccessoryModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Accessory</DialogTitle>
-              <DialogDescription>
-                Update the accessory information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-accessory-name" className="text-sm font-medium">Accessory Name</Label>
-                <Input
-                  id="edit-accessory-name"
-                  type="text"
-                  placeholder="Enter accessory name"
-                  value={accessoryFormData.name}
-                  onChange={(e) => handleAccessoryFormChange("name", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditAccessoryModalOpen(false)} disabled={updatingAccessory}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateAccessory} disabled={updatingAccessory || !accessoryFormData.name.trim()}>
-                {updatingAccessory ? "Updating..." : "Update Accessory"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Accessory Confirmation Modal */}
-        <AlertDialog open={deleteAccessoryModalOpen} onOpenChange={setDeleteAccessoryModalOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Accessory</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete the accessory "{deletingAccessory?.name}"? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteAccessory} className="bg-red-600 hover:bg-red-700">
-                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

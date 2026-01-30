@@ -6,6 +6,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { AddInvoiceModal } from './AddInvoiceModal';
@@ -53,6 +63,7 @@ export function AddInvoiceFromListModal({
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [paymentDues, setPaymentDues] = useState<any[]>([]);
   const [loadingDues, setLoadingDues] = useState(false);
+  const [showGstAlert, setShowGstAlert] = useState(false);
   const ticketSelectRef = useRef<HTMLSelectElement>(null);
 
   // Initialize Select2
@@ -195,7 +206,25 @@ export function AddInvoiceFromListModal({
     }
   };
 
-  const handleInvoiceTypeChange = (type: string) => {
+  const handleInvoiceTypeChange = async (type: string) => {
+    // If "with_gst" is selected, check if GST value exists
+    if (type === 'with_gst') {
+      try {
+        const response = await axios.get('/gst/rate');
+        const gstValue = response.data?.gst;
+
+        if (gstValue === null || gstValue === undefined) {
+          // Show alert dialog if GST is not configured
+          setShowGstAlert(true);
+          return; // Don't proceed with selection
+        }
+      } catch (error) {
+        console.error('Error checking GST rate:', error);
+        setShowGstAlert(true);
+        return;
+      }
+    }
+
     setInvoiceType(type);
     // Reset ticket selection when changing invoice type
     setSelectedTicketId('');
@@ -238,7 +267,8 @@ export function AddInvoiceFromListModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg overflow-visible" style={{maxHeight: '90vh'}}>
         <DialogHeader>
           <DialogTitle>Select Ticket for Invoice</DialogTitle>
@@ -363,5 +393,23 @@ export function AddInvoiceFromListModal({
         </div>
       </DialogContent>
     </Dialog>
+
+      {/* GST Not Configured Alert Dialog */}
+      <AlertDialog open={showGstAlert} onOpenChange={setShowGstAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>GST Rate Not Configured</AlertDialogTitle>
+            <AlertDialogDescription>
+              The GST rate has not been configured in the system. Please configure the GST rate in the General Options page before creating invoices with GST.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowGstAlert(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
